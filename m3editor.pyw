@@ -83,10 +83,10 @@ class mainWin(QtWidgets.QMainWindow):
         self.saveIni()
         ev.accept()
 
+if __name__ == '__main__':
+    app = QtWidgets.QApplication([])
+    appWin = mainWin()
+    app.installEventFilter(appWin)
+    appWin.show()
 
-app = QtWidgets.QApplication([])
-appWin = mainWin()
-app.installEventFilter(appWin)
-appWin.show()
-
-sys.exit(app.exec())
+    sys.exit(app.exec())

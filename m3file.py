@@ -50,9 +50,11 @@ class m3Tag():
             # still, we should not decode it here, CHAR tag can contain binary data of unkown format (see MADD tag in structures.xml)
             # decoding should only happen after all references are resolved and it is certain 'data' content is a string
 
-    def addRefFrom(self, tag_index, item_index, field_index):
+    def addRefFrom(self, tag_index, item_index, field: m3FieldInfo):
         if tag_index>0:
-            self.refFrom.append((tag_index, item_index, field_index))
+            self.refFrom.append((tag_index, item_index, field.getIndex()))
+            if field.refToBinary:
+                self.info.forceBinary()
 
     def getStr(self) -> str:
         if self.info.type == m3Type.CHAR:
@@ -65,6 +67,8 @@ class m3Tag():
             raise m3FileError('Field not part of tag structure')
         if field.type == m3Type.CHAR:
             return f'Size = {self.count}'
+        if field.type == m3Type.BINARY:
+            return f'Size = {field.size}'
         return field.getInfoStr()
 
     def getFieldAsStr(self, item_idx, field: m3FieldInfo) -> str:
@@ -94,7 +98,15 @@ class m3Tag():
             return f'{val} (0x{hex:0{hex_size}x})'
         #if field.type == m3Type.BINARY:
         end_offset = offset + field.size
-        return ' '.join([f'{x:02x}' for x in self.data[offset:end_offset]])
+        data_list = [f'{x:02x}' for x in self.data[offset:end_offset]]
+        for i in range(1, len(data_list)):
+            if i % 16 == 0:
+                data_list[i] = '\n' + data_list[i]
+            elif i % 4 == 0:
+                data_list[i] = '  ' + data_list[i]
+            #else:
+            #    data_list[i] = ' ' + data_list[i]
+        return ' '.join(data_list)
 
     def getReff(self, item_idx, field: m3FieldInfo) -> m3Tag:
         if not field in self.info.fields:
@@ -169,7 +181,7 @@ class m3File():
             for idx in range(0, tag.count):
                 for f in tag.info.fields:
                     if f.isRef() and tag.refIsValid(idx, f):
-                        tag.getReff(idx, f).addRefFrom(tag.idx, idx, f.getIndex())
+                        tag.getReff(idx, f).addRefFrom(tag.idx, idx, f)
         self.orphans.clear()
         for tag in self.tags:
             if len(tag.refFrom)==0 and tag != self.modl and tag.idx != 0: # exclude MODL and header tags

@@ -60,7 +60,7 @@ IDX_SIMPLE = 9
 
 SUB_STRUCT_DELIM = '.'
 
-BINARY_DATA_DISPLAY_COUNT = 8
+BINARY_DATA_ITEM_BYTES_COUNT = 16
 
 class Tag:
     STRUCT = 'structure'
@@ -213,6 +213,8 @@ class m3FieldInfo():
         self.default = None
         self.expected = None
         self.refTo = None
+        self.refToBinary = False
+        self.refToVertices = False
         self.size = size
 
     def getInfoStr(self) -> str:
@@ -251,8 +253,8 @@ class m3StructInfo():
         elif not struct:
             self.type = m3Type.BINARY
             self.simple = True
-            self.item_size = BINARY_DATA_DISPLAY_COUNT
-            self.fields.append( m3FieldInfo(self, 'Binary', 'bytes', 0, m3Type.BINARY, BINARY_DATA_DISPLAY_COUNT) )
+            self.item_size = BINARY_DATA_ITEM_BYTES_COUNT
+            self.fields.append( m3FieldInfo(self, 'Binary', 'bytes', 0, m3Type.BINARY, BINARY_DATA_ITEM_BYTES_COUNT) )
         else:
             self.type = struct[IDX_TYPE]
             self.simple = struct[IDX_SIMPLE]
@@ -260,6 +262,7 @@ class m3StructInfo():
                 self.item_size = m3Type.toSize(self.type)
                 self.fields.append( m3FieldInfo(self, struct[IDX_FIELDS][0][Attr.TYPE], 'value', 0, self.type) )
             else:
+                self.fields.append( m3FieldInfo(self, self.name, '*** Self ***', 0, self.type) )
                 self.item_size = self.putSubStructureFields(structFile, struct, 0, '', ver)
 
     def putSubStructureFields(self, structFile: m3StructFile, struct, offset, prefix, ver):
@@ -274,6 +277,10 @@ class m3StructInfo():
                     field.expected = f[Attr.EXPECTED]
                 if Attr.REF_TO in f:
                     field.refTo = f[Attr.REF_TO]
+                if Attr.BINARY in f:
+                    field.refToBinary = True
+                if Attr.VERTICES in f:
+                    field.refToVertices = True
                 if Attr.SIZE in f:
                     size = f[Attr.SIZE]
                 else:
@@ -296,6 +303,14 @@ class m3StructInfo():
                 else:
                     offset += size
         return offset
+
+    def forceBinary(self):
+        self.hasRefs = False
+        self.fields = [] # type: List[m3FieldInfo]
+        self.type = m3Type.BINARY
+        self.simple = True
+        self.item_size = BINARY_DATA_ITEM_BYTES_COUNT
+        self.fields.append( m3FieldInfo(self, 'Binary', 'bytes', 0, m3Type.BINARY, BINARY_DATA_ITEM_BYTES_COUNT) )
 
     def isSingleField(self) -> bool:
         return True if len(self.fields)<2 else False

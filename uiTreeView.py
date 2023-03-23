@@ -16,7 +16,7 @@
 from typing import List, Callable
 from PyQt5.QtCore import *
 from m3file import m3File, m3Tag
-from m3struct import m3StructFile, m3Type, m3FieldInfo, BINARY_DATA_DISPLAY_COUNT
+from m3struct import m3StructFile, m3Type, m3FieldInfo, BINARY_DATA_ITEM_BYTES_COUNT
 
 SHADOW_TAG, SHADOW_IT, SHADOW_GRP, SHADOW_DUP = range(4)
 SHADOW_GRP_COUNT = 20
@@ -251,7 +251,7 @@ class fieldsTableModel(QAbstractTableModel):
             self.item_offset = 0
             self.step = 0
             if self.tag.info.type == m3Type.BINARY:
-                self.step_max = max(range(0, len(self.tag.count)//BINARY_DATA_DISPLAY_COUNT, TAG_SIMPLE_FIELDS_DISPLAY_COUNT))
+                self.step_max = max(range(0, len(self.tag.data)//BINARY_DATA_ITEM_BYTES_COUNT, TAG_SIMPLE_FIELDS_DISPLAY_COUNT))
             else:
                 self.step_max = max(range(0, self.tag.count, TAG_SIMPLE_FIELDS_DISPLAY_COUNT))
         self.endResetModel()
@@ -263,14 +263,14 @@ class fieldsTableModel(QAbstractTableModel):
 
     def stepSimpleItemOffset(self, step: int):
         if self.tag and self.tag.info.simple:
-            self.step = clampi(step, 0, self.step_max)
+            self.step = clampi(self.step + step, 0, self.step_max)
             self.setSimpleItemOffset(TAG_SIMPLE_FIELDS_DISPLAY_COUNT * step)
 
     def rowCount(self, parent: QModelIndex) -> int:
         if self.tag and not parent.isValid():
             if self.tag.info.simple:
                 if self.tag.info.type == m3Type.BINARY:
-                    count = len(self.tag.data)//BINARY_DATA_DISPLAY_COUNT - self.item_offset
+                    count = len(self.tag.data)//BINARY_DATA_ITEM_BYTES_COUNT - self.item_offset
                 else:
                     count = self.tag.count - self.item_offset
                 return min(count, TAG_SIMPLE_FIELDS_DISPLAY_COUNT)
@@ -290,15 +290,23 @@ class fieldsTableModel(QAbstractTableModel):
     def data(self, index: QModelIndex, role: int):
         if not (index.isValid() and self.tag):
             return self.dataDefault(role)
+        col = index.column()
         if self.tag.info.simple:
             f = self.tag.info.fields[0]
-            if self.tag.info.type == m3Type.BINARY:
-                pass
-            else:
-                pass
+            item = self.item_offset + index.row()
+            if role in (Qt.DisplayRole, Qt.StatusTipRole):
+                if col == 0:
+                    return f'{f.name} 0x{item*self.tag.info.item_size:08x}' if f.type == m3Type.BINARY else f'{f.name} {item:3d}'
+                elif col == 1:
+                    return f.type_name
+                elif col == 2:
+                    return self.tag.getFieldInfoStr(f)
+                elif col == 3:
+                    return self.tag.getFieldAsStr(item, f)
+            if role == fieldsTableModel.SimpleFieldOffsetRole:
+                return item * self.tag.info.item_size
         elif index.row() in range(0, len(self.tag.info.fields)):
             f = self.tag.info.fields[index.row()]
-            col = index.column()
             if role in (Qt.DisplayRole, Qt.StatusTipRole):
                 if col == 0:
                     return f.name
@@ -308,8 +316,10 @@ class fieldsTableModel(QAbstractTableModel):
                     return self.tag.getFieldInfoStr(f)
                 elif col == 3:
                     return self.tag.getFieldAsStr(self.tag_item, f)
-            if role == fieldsTableModel.FieldRole:
-                return f
+        else:
+            f = None
+        if role == fieldsTableModel.FieldRole and f:
+            return f
         return self.dataDefault(role)
     
     def headerData(self, section: int, orientation: Qt.Orientation, role: int):
