@@ -60,9 +60,18 @@ class m3Tag():
         else:
             return ''
 
+    def getFieldInfoStr(self, field: m3FieldInfo):
+        if not field in self.info.fields:
+            raise m3FileError('Field not part of tag structure')
+        if field.type == m3Type.CHAR:
+            return f'Size = {self.count}'
+        return field.getInfoStr()
+
     def getFieldAsStr(self, item_idx, field: m3FieldInfo) -> str:
         if not field in self.info.fields:
             raise m3FileError('Field not part of tag structure')
+        if field.type == m3Type.CHAR:
+            return self.getStr()
         offset = field.getDataOffset(item_idx)
         if field.isRef():
             if field.type == m3Type.REF:
@@ -74,23 +83,15 @@ class m3Tag():
             if self.refIsValid(item_idx, field):
                 refTag = self.getReff(item_idx, field)
                 s += f' -> {refTag.info.name}#{refTag.idx}'
-                if refTag.tag == TAG_CHAR:
+                if refTag.info.type == m3Type.CHAR:
                     s += f' "{refTag.getStr()}"'
             return s
-        if field.type == m3Type.INT8:
-            return str(unpack_from('<b', self.data, offset)[0])
-        if field.type == m3Type.INT16:
-            return str(unpack_from('<h', self.data, offset)[0])
-        if field.type == m3Type.INT32:
-            return str(unpack_from('<i', self.data, offset)[0])
-        if field.type == m3Type.UINT8:
-            return str(unpack_from('<B', self.data, offset)[0])
-        if field.type == m3Type.UINT16:
-            return str(unpack_from('<H', self.data, offset)[0])
-        if field.type == m3Type.UINT32:
-            return str(unpack_from('<I', self.data, offset)[0])
-        if field.type == m3Type.FLOAT:
-            return str(unpack_from('<f', self.data, offset)[0])
+        val = None
+        if field.type in m3Type.SIMPLE:
+            val = unpack_from(m3Type.toFormat(field.type), self.data, offset)[0]
+            hex = unpack_from(m3Type.toHexFormat(field.type), self.data, offset)[0]
+            hex_size = m3Type.toSize(field.type) * 2
+            return f'{val} (0x{hex:0{hex_size}x})'
         #if field.type == m3Type.BINARY:
         end_offset = offset + field.size
         return ' '.join([f'{x:02x}' for x in self.data[offset:end_offset]])

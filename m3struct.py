@@ -60,6 +60,8 @@ IDX_SIMPLE = 9
 
 SUB_STRUCT_DELIM = '.'
 
+BINARY_DATA_DISPLAY_COUNT = 8
+
 class Tag:
     STRUCT = 'structure'
     DESC = 'description'
@@ -142,6 +144,26 @@ class m3Type():
         CHAR: 'String'
     }
 
+    TYPE_TO_FORMAT = {
+        UINT8: '<B',
+        UINT16: '<H',
+        UINT32: '<I',
+        INT8: '<b',
+        INT16: '<h',
+        INT32: '<i',
+        FLOAT: '<f',
+    }
+
+    TYPE_TO_HEX_FORMAT = {
+        UINT8: '<B',
+        UINT16: '<H',
+        UINT32: '<I',
+        INT8: '<B',
+        INT16: '<H',
+        INT32: '<I',
+        FLOAT: '<I',
+    }
+
     SIMPLE = (UINT8, UINT16, UINT32, INT8, INT16, INT32, FLOAT)
     REFS = (REF, REF_SMALL)
 
@@ -168,17 +190,30 @@ class m3Type():
         else:
             return f'Unknown {type}'
 
+    @classmethod
+    def toFormat(cls, type) -> int:
+        if type in cls.TYPE_TO_FORMAT:
+            return cls.TYPE_TO_FORMAT[type]
+
+    @classmethod
+    def toHexFormat(cls, type) -> int:
+        if type in cls.TYPE_TO_HEX_FORMAT:
+            return cls.TYPE_TO_HEX_FORMAT[type]
+
 class m3FieldInfo():
-    def __init__(self, owner: m3StructInfo, type_name, name, offset) -> None:
+    def __init__(self, owner: m3StructInfo, type_name, name, offset, Type = None, size = 0) -> None:
         self.owner = owner
-        self.type = m3Type.fromName(type_name)
+        if Type==None:
+            self.type = m3Type.fromName(type_name)
+        else:
+            self.type = Type
         self.type_name = type_name
         self.name = name
         self.offset = offset
         self.default = None
         self.expected = None
         self.refTo = None
-        self.size = 0
+        self.size = size
 
     def getInfoStr(self) -> str:
         s = ''
@@ -210,19 +245,22 @@ class m3StructInfo():
         self.fields = [] # type: List[m3FieldInfo]
         if tag == TAG_CHAR:
             self.type = m3Type.CHAR
-            self.simple = True
+            self.simple = False
             self.item_size = 0
+            self.fields.append( m3FieldInfo(self, 'CHAR', 'String', 0, m3Type.CHAR) )
         elif not struct:
             self.type = m3Type.BINARY
             self.simple = True
-            self.item_size = 0
+            self.item_size = BINARY_DATA_DISPLAY_COUNT
+            self.fields.append( m3FieldInfo(self, 'Binary', 'bytes', 0, m3Type.BINARY, BINARY_DATA_DISPLAY_COUNT) )
         else:
             self.type = struct[IDX_TYPE]
             self.simple = struct[IDX_SIMPLE]
-            if not self.simple:
-                self.item_size = self.putSubStructureFields(structFile, struct, 0, '', ver)
-            else:
+            if self.simple:
                 self.item_size = m3Type.toSize(self.type)
+                self.fields.append( m3FieldInfo(self, struct[IDX_FIELDS][0][Attr.TYPE], 'value', 0, self.type) )
+            else:
+                self.item_size = self.putSubStructureFields(structFile, struct, 0, '', ver)
 
     def putSubStructureFields(self, structFile: m3StructFile, struct, offset, prefix, ver):
         if struct:
@@ -258,6 +296,9 @@ class m3StructInfo():
                 else:
                     offset += size
         return offset
+
+    def isSingleField(self) -> bool:
+        return True if len(self.fields)<2 else False
 
 class m3StructFile():
     def __init__(self):

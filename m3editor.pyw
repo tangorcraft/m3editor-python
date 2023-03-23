@@ -43,6 +43,10 @@ class mainWin(QtWidgets.QMainWindow):
 
         self.fieldsModel = fieldsTableModel()
         self.ui.fieldsTable.setModel(self.fieldsModel)
+        self.ui.fieldsTable.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+        self.ui.fieldsTable.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        self.ui.fieldsTable.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
+        self.ui.fieldsTable.horizontalHeader().setSectionResizeMode(3, QtWidgets.QHeaderView.Stretch)
 
         self.ui.actionOpen.triggered.connect(self.openM3)
 
@@ -66,7 +70,7 @@ class mainWin(QtWidgets.QMainWindow):
             shadow = item.data(Qt.UserRole) # type: ShadowItem
             if shadow.tag:
                 tag_item = shadow.tag_item if shadow.tag_item in range(0, shadow.tag.count) else 0
-                self.fieldsModel.setFields(shadow.tag, tag_item)
+                self.fieldsModel.setM3Tag(shadow.tag, tag_item)
 
     def openM3(self):
         fname, filter = QtWidgets.QFileDialog.getOpenFileName(self, 'Open m3 model',self.lastFile,"M3 Model (*.m3)")
