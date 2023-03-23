@@ -201,14 +201,18 @@ class m3Type():
             return cls.TYPE_TO_HEX_FORMAT[type]
 
 class m3FieldInfo():
-    def __init__(self, owner: m3StructInfo, type_name, name, offset, Type = None, size = 0) -> None:
+    def __init__(self, owner: m3StructInfo, type_name, prefix, name, offset, Type = None, size = 0) -> None:
         self.owner = owner
+        self.tree_parent = 0
+        self.tree_row = 0
+        self.tree_children = [] # type: List[int]
         if Type==None:
             self.type = m3Type.fromName(type_name)
         else:
             self.type = Type
         self.type_name = type_name
-        self.name = name
+        self.name = prefix + name
+        self.display_name = name
         self.offset = offset
         self.default = None
         self.expected = None
@@ -216,6 +220,15 @@ class m3FieldInfo():
         self.refToBinary = False
         self.refToVertices = False
         self.size = size
+
+    def noticeChild(self, child) -> int:
+        idx = len(self.tree_children)
+        self.tree_children.append(child)
+        return idx
+
+    def setParent(self, parent: int):
+        self.tree_parent = parent
+        self.tree_row = self.owner.notifyParent(parent, self.getIndex())
 
     def getInfoStr(self) -> str:
         s = ''
@@ -245,32 +258,33 @@ class m3StructInfo():
         self.name = m3TagToStr(tag)
         self.hasRefs = False
         self.fields = [] # type: List[m3FieldInfo]
+        self.root_fields = [0] # we will add at least one field
         if tag == TAG_CHAR:
             self.type = m3Type.CHAR
             self.simple = False
             self.item_size = 0
-            self.fields.append( m3FieldInfo(self, 'CHAR', 'String', 0, m3Type.CHAR) )
+            self.fields.append( m3FieldInfo(self, 'CHAR', '', 'String', 0, m3Type.CHAR) )
         elif not struct:
             self.type = m3Type.BINARY
             self.simple = True
             self.item_size = BINARY_DATA_ITEM_BYTES_COUNT
-            self.fields.append( m3FieldInfo(self, 'Binary', 'bytes', 0, m3Type.BINARY, BINARY_DATA_ITEM_BYTES_COUNT) )
+            self.fields.append( m3FieldInfo(self, 'Binary', '', 'bytes', 0, m3Type.BINARY, BINARY_DATA_ITEM_BYTES_COUNT) )
         else:
             self.type = struct[IDX_TYPE]
             self.simple = struct[IDX_SIMPLE]
             if self.simple:
                 self.item_size = m3Type.toSize(self.type)
-                self.fields.append( m3FieldInfo(self, struct[IDX_FIELDS][0][Attr.TYPE], 'value', 0, self.type) )
+                self.fields.append( m3FieldInfo(self, struct[IDX_FIELDS][0][Attr.TYPE], '', 'value', 0, self.type) )
             else:
-                self.fields.append( m3FieldInfo(self, self.name, '*** Self ***', 0, self.type) )
+                self.fields.append( m3FieldInfo(self, self.name, '', '*** Self ***', 0, self.type) )
                 self.item_size = self.putSubStructureFields(structFile, struct, 0, '', ver)
 
-    def putSubStructureFields(self, structFile: m3StructFile, struct, offset, prefix, ver):
+    def putSubStructureFields(self, structFile: m3StructFile, struct, offset, prefix, ver, parent = 0):
         if struct:
             for f in struct[IDX_FIELDS]:
                 if Attr.SINCE_VER in f and f[Attr.SINCE_VER] > ver: continue
                 if Attr.TILL_VER in f and f[Attr.TILL_VER] < ver: continue
-                field = m3FieldInfo( self, f[Attr.TYPE], prefix + f[Attr.NAME], offset )
+                field = m3FieldInfo( self, f[Attr.TYPE], prefix, f[Attr.NAME], offset )
                 if Attr.DEFAULT in f:
                     field.default = f[Attr.DEFAULT]
                 if Attr.EXPECTED in f:
@@ -288,7 +302,9 @@ class m3StructInfo():
                 field.size = size
                 if not self.hasRefs and field.type in (m3Type.REF, m3Type.REF_SMALL):
                     self.hasRefs = True
+                idx = len(self.fields)
                 self.fields.append(field)
+                field.setParent(parent)
 
                 if size==0: # sub structure
                     match = re.search('(.*)V([0-9]+)$',f[Attr.TYPE])
@@ -299,18 +315,36 @@ class m3StructInfo():
                     else:
                         n = f[Attr.TYPE]
                         v = 0
-                    offset = self.putSubStructureFields(structFile, structFile.ByName(n), offset, field.name+SUB_STRUCT_DELIM, v)
+                    offset = self.putSubStructureFields(structFile, structFile.ByName(n), offset, field.name+SUB_STRUCT_DELIM, v, idx)
                 else:
                     offset += size
         return offset
 
+    def getField(self, index) -> m3FieldInfo:
+        if index in range(0, len(self.fields)):
+            return self.fields[index]
+
+    def getFieldParent(self, index) -> m3FieldInfo:
+        if index in range(0, len(self.fields)):
+            parent = self.fields[index].tree_parent
+            if parent in range(1, len(self.fields)):
+                return self.fields[parent]
+
     def forceBinary(self):
         self.hasRefs = False
         self.fields = [] # type: List[m3FieldInfo]
+        self.root_fields = 1
         self.type = m3Type.BINARY
         self.simple = True
         self.item_size = BINARY_DATA_ITEM_BYTES_COUNT
-        self.fields.append( m3FieldInfo(self, 'Binary', 'bytes', 0, m3Type.BINARY, BINARY_DATA_ITEM_BYTES_COUNT) )
+        self.fields.append( m3FieldInfo(self, 'Binary', '', 'bytes', 0, m3Type.BINARY, BINARY_DATA_ITEM_BYTES_COUNT) )
+
+    def notifyParent(self, parent, child: int):
+        if parent in range(1, len(self.fields)):
+            return self.fields[parent].noticeChild(child)
+        idx = len(self.root_fields)
+        self.root_fields.append(child)
+        return idx
 
     def isSingleField(self) -> bool:
         return True if len(self.fields)<2 else False

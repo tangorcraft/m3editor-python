@@ -234,7 +234,7 @@ class TagTreeModel(QAbstractItemModel):
                 return True if len(shadow.children)>0 else False
         return False
 
-class fieldsTableModel(QAbstractTableModel):
+class fieldsTableModel(QAbstractItemModel):
     FieldRole = Qt.UserRole # type: 'Qt.ItemDataRole'
     SimpleFieldOffsetRole = Qt.UserRole + 1 # type: 'Qt.ItemDataRole'
 
@@ -266,17 +266,42 @@ class fieldsTableModel(QAbstractTableModel):
             self.step = clampi(self.step + step, 0, self.step_max)
             self.setSimpleItemOffset(TAG_SIMPLE_FIELDS_DISPLAY_COUNT * step)
 
+    def index(self, row: int, column: int, parent: QModelIndex) -> QModelIndex:
+        if self.tag.info.simple:
+            if parent.isValid(): return QModelIndex()
+            return self.createIndex(row, column, row*10+column)
+        elif parent.isValid():
+            f = self.tag.info.getField(parent.internalId())
+            if f and row in range(0, len(f.tree_children)):
+                return self.createIndex(row, column, f.tree_children[row])
+        elif row in range(0, len(self.tag.info.root_fields)):
+            return self.createIndex(row, column, self.tag.info.root_fields[row])
+        return QModelIndex
+
+    def parent(self, child: QModelIndex) -> QModelIndex:
+        if self.tag.info.simple:
+            pass
+        elif child.isValid():
+            f = self.tag.info.getFieldParent(child.internalId())
+            if f:
+                return self.createIndex(f.tree_row, 0, f.getIndex())
+        return QModelIndex()
+
     def rowCount(self, parent: QModelIndex) -> int:
-        if self.tag and not parent.isValid():
-            if self.tag.info.simple:
-                if self.tag.info.type == m3Type.BINARY:
-                    count = len(self.tag.data)//BINARY_DATA_ITEM_BYTES_COUNT - self.item_offset
-                else:
-                    count = self.tag.count - self.item_offset
-                return min(count, TAG_SIMPLE_FIELDS_DISPLAY_COUNT)
-            return len(self.tag.info.fields)
+        if self.tag:
+            if parent.isValid() and parent.column()==0:
+                f = self.tag.info.getField(parent.internalId())
+                if f: return len(f.tree_children)
+            else:
+                if self.tag.info.simple:
+                    if self.tag.info.type == m3Type.BINARY:
+                        count = len(self.tag.data)//BINARY_DATA_ITEM_BYTES_COUNT - self.item_offset
+                    else:
+                        count = self.tag.count - self.item_offset
+                    return min(count, TAG_SIMPLE_FIELDS_DISPLAY_COUNT)
+                return len(self.tag.info.root_fields)
         return 0
-    
+
     def columnCount(self, parent: QModelIndex) -> int:
         return 4
 
@@ -305,11 +330,11 @@ class fieldsTableModel(QAbstractTableModel):
                     return self.tag.getFieldAsStr(item, f)
             if role == fieldsTableModel.SimpleFieldOffsetRole:
                 return item * self.tag.info.item_size
-        elif index.row() in range(0, len(self.tag.info.fields)):
-            f = self.tag.info.fields[index.row()]
+        elif index.internalId() in range(0, len(self.tag.info.fields)):
+            f = self.tag.info.fields[index.internalId()]
             if role in (Qt.DisplayRole, Qt.StatusTipRole):
                 if col == 0:
-                    return f.name
+                    return f.display_name if role == Qt.DisplayRole else f.name
                 elif col == 1:
                     return f.type_name
                 elif col == 2:
