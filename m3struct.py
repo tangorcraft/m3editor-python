@@ -317,8 +317,25 @@ class m3StructInfo():
                         v = 0
                     offset = self.putSubStructureFields(structFile, structFile.ByName(n), offset, field.name+SUB_STRUCT_DELIM, v, idx)
                 else:
+                    if field.type == m3Type.BINARY and size > BINARY_DATA_ITEM_BYTES_COUNT:
+                        self.putSubBinaryFields(field, idx, offset)
                     offset += size
         return offset
+
+    def putSubBinaryFields(self, parent: m3FieldInfo, parent_idx, offset):
+        if parent.type == m3Type.BINARY:
+            for step in range(0, parent.size, BINARY_DATA_ITEM_BYTES_COUNT):
+                field = m3FieldInfo(
+                    self,
+                    'Binary',
+                    parent.name + SUB_STRUCT_DELIM,
+                    f'bytes_0x{offset+step:08x}',
+                    offset + step,
+                    m3Type.BINARY,
+                    min(BINARY_DATA_ITEM_BYTES_COUNT, parent.size - step)
+                )
+                self.fields.append(field)
+                field.setParent(parent_idx)
 
     def getField(self, index) -> m3FieldInfo:
         if index in range(0, len(self.fields)):

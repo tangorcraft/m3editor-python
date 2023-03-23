@@ -162,7 +162,23 @@
     </property>
     <addaction name="actionOpen"/>
    </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <widget class="QMenu" name="menuSimple_and_Binary_Display_Count">
+     <property name="title">
+      <string>Simple and Binary Display Count</string>
+     </property>
+     <addaction name="actionSimpleDisplayCount50"/>
+     <addaction name="actionSimpleDisplayCount100"/>
+     <addaction name="actionSimpleDisplayCount200"/>
+     <addaction name="actionSimpleDisplayCount500"/>
+    </widget>
+    <addaction name="menuSimple_and_Binary_Display_Count"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuView"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen">
@@ -170,9 +186,39 @@
     <string>Open</string>
    </property>
   </action>
-  <action name="actionreset_model">
+  <action name="actionSimpleDisplayCount50">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="text">
-    <string>reset model</string>
+    <string>50</string>
+   </property>
+  </action>
+  <action name="actionSimpleDisplayCount100">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>100</string>
+   </property>
+  </action>
+  <action name="actionSimpleDisplayCount200">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>200</string>
+   </property>
+  </action>
+  <action name="actionSimpleDisplayCount500">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>500</string>
    </property>
   </action>
  </widget>

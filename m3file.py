@@ -16,7 +16,7 @@
 from __future__ import annotations
 from typing import List, Tuple
 from struct import pack, unpack_from, calcsize
-from m3struct import m3FieldInfo, m3StructFile, m3StructInfo, m3Type, TAG_CHAR, TAG_HEADER_33, TAG_HEADER_34
+from m3struct import m3FieldInfo, m3StructFile, m3StructInfo, m3Type, TAG_HEADER_33, TAG_HEADER_34, TAG_CHAR, BINARY_DATA_ITEM_BYTES_COUNT
 
 INDEX_REF_SIZE = calcsize('<IIII') # tag, dataOffset, dataCount, version
 # index item fields, first 3 also match header fields
@@ -97,15 +97,12 @@ class m3Tag():
             hex_size = m3Type.toSize(field.type) * 2
             return f'{val} (0x{hex:0{hex_size}x})'
         #if field.type == m3Type.BINARY:
-        end_offset = offset + field.size
+        end_offset = offset + min(field.size, BINARY_DATA_ITEM_BYTES_COUNT)
         data_list = [f'{x:02x}' for x in self.data[offset:end_offset]]
-        for i in range(1, len(data_list)):
-            if i % 16 == 0:
-                data_list[i] = '\n' + data_list[i]
-            elif i % 4 == 0:
-                data_list[i] = '  ' + data_list[i]
-            #else:
-            #    data_list[i] = ' ' + data_list[i]
+        for i in range(4, len(data_list), 4):
+            data_list[i] = ' ' + data_list[i]
+        if field.size > BINARY_DATA_ITEM_BYTES_COUNT:
+            data_list.append('...')
         return ' '.join(data_list)
 
     def getReff(self, item_idx, field: m3FieldInfo) -> m3Tag:

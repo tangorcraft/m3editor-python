@@ -48,6 +48,16 @@ class mainWin(QtWidgets.QMainWindow):
         self.ui.fieldsTable.header().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
         self.ui.fieldsTable.header().setSectionResizeMode(3, QtWidgets.QHeaderView.Stretch)
 
+        self.acton_SimpleDisplayCountGroup = QtWidgets.QActionGroup(self)
+        self.acton_SimpleDisplayCountGroup.addAction(self.ui.actionSimpleDisplayCount50)
+        self.acton_SimpleDisplayCountGroup.addAction(self.ui.actionSimpleDisplayCount100)
+        self.acton_SimpleDisplayCountGroup.addAction(self.ui.actionSimpleDisplayCount200)
+        self.acton_SimpleDisplayCountGroup.addAction(self.ui.actionSimpleDisplayCount500)
+        self.ui.actionSimpleDisplayCount50.triggered.connect(lambda x: self.setSDC(x, 50))
+        self.ui.actionSimpleDisplayCount100.triggered.connect(lambda x: self.setSDC(x, 100))
+        self.ui.actionSimpleDisplayCount200.triggered.connect(lambda x: self.setSDC(x, 200))
+        self.ui.actionSimpleDisplayCount500.triggered.connect(lambda x: self.setSDC(x, 500))
+
         self.ui.actionOpen.triggered.connect(self.openM3)
 
     def setIniOption(self, sect, opt, val, saveINI = False):
@@ -59,6 +69,10 @@ class mainWin(QtWidgets.QMainWindow):
     def saveIni(self):
         with open('options.ini','w') as cfgFile:
             self.cfg.write(cfgFile)
+
+    def setSDC(self, checked, value):
+        if checked:
+            self.fieldsModel.setSimpleFieldsDisplayCount(value)
 
     def eventFilter(self, obj: 'QObject', ev: 'QEvent') -> bool:
         return super().eventFilter(obj, ev)

@@ -21,7 +21,7 @@ from m3struct import m3StructFile, m3Type, m3FieldInfo, BINARY_DATA_ITEM_BYTES_C
 SHADOW_TAG, SHADOW_IT, SHADOW_GRP, SHADOW_DUP = range(4)
 SHADOW_GRP_COUNT = 20
 
-TAG_SIMPLE_FIELDS_DISPLAY_COUNT = 50
+DEFAULT_SIMPLE_FIELDS_DISPLAY_COUNT = 50
 
 def clampi(val: int, min: int, max: int):
     return min if val < min else max if val > max else val
@@ -240,6 +240,7 @@ class fieldsTableModel(QAbstractItemModel):
 
     def __init__(self, tag: m3Tag = None) -> None:
         self.tag = tag
+        self.simpleFieldsDisplayCount = DEFAULT_SIMPLE_FIELDS_DISPLAY_COUNT
         super().__init__(None)
 
     def setM3Tag(self, tag: m3Tag, tag_item: int):
@@ -251,9 +252,9 @@ class fieldsTableModel(QAbstractItemModel):
             self.item_offset = 0
             self.step = 0
             if self.tag.info.type == m3Type.BINARY:
-                self.step_max = max(range(0, len(self.tag.data)//BINARY_DATA_ITEM_BYTES_COUNT, TAG_SIMPLE_FIELDS_DISPLAY_COUNT))
+                self.step_max = max(range(0, len(self.tag.data)//BINARY_DATA_ITEM_BYTES_COUNT, self.simpleFieldsDisplayCount))
             else:
-                self.step_max = max(range(0, self.tag.count, TAG_SIMPLE_FIELDS_DISPLAY_COUNT))
+                self.step_max = max(range(0, self.tag.count, self.simpleFieldsDisplayCount))
         self.endResetModel()
 
     def setSimpleItemOffset(self, offset: int):
@@ -264,7 +265,17 @@ class fieldsTableModel(QAbstractItemModel):
     def stepSimpleItemOffset(self, step: int):
         if self.tag and self.tag.info.simple:
             self.step = clampi(self.step + step, 0, self.step_max)
-            self.setSimpleItemOffset(TAG_SIMPLE_FIELDS_DISPLAY_COUNT * step)
+            self.setSimpleItemOffset(self.simpleFieldsDisplayCount * step)
+
+    def setSimpleFieldsDisplayCount(self, value: int):
+        if self.tag and self.tag.info.simple:
+            self.beginResetModel()
+            self.simpleFieldsDisplayCount = value
+            self.endResetModel()
+        else:
+            self.simpleFieldsDisplayCount = value
+
+    ### Tree Implementation ###
 
     def index(self, row: int, column: int, parent: QModelIndex) -> QModelIndex:
         if self.tag.info.simple:
@@ -298,7 +309,7 @@ class fieldsTableModel(QAbstractItemModel):
                         count = len(self.tag.data)//BINARY_DATA_ITEM_BYTES_COUNT - self.item_offset
                     else:
                         count = self.tag.count - self.item_offset
-                    return min(count, TAG_SIMPLE_FIELDS_DISPLAY_COUNT)
+                    return min(count, self.simpleFieldsDisplayCount)
                 return len(self.tag.info.root_fields)
         return 0
 
