@@ -43,10 +43,10 @@ class mainWin(QtWidgets.QMainWindow):
 
         self.fieldsModel = fieldsTableModel()
         self.ui.fieldsTable.setModel(self.fieldsModel)
-        self.ui.fieldsTable.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
-        self.ui.fieldsTable.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
-        self.ui.fieldsTable.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
-        self.ui.fieldsTable.horizontalHeader().setSectionResizeMode(3, QtWidgets.QHeaderView.Stretch)
+        self.ui.fieldsTable.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+        self.ui.fieldsTable.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        self.ui.fieldsTable.header().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
+        self.ui.fieldsTable.header().setSectionResizeMode(3, QtWidgets.QHeaderView.Stretch)
 
         self.ui.actionOpen.triggered.connect(self.openM3)
 
