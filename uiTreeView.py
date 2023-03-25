@@ -439,6 +439,8 @@ class fieldsTableModel(QAbstractItemModel):
                     return self.tag.getFieldInfoStr(f)
                 elif col == 3:
                     return self.tag.getFieldAsStr(self.tag_item, f)
+            elif role == Qt.CheckStateRole and f.type == m3Type.BIT and col == 3:
+                return Qt.Checked if self.tag.checkBitState(self.tag_item, f) else Qt.Unchecked
         else:
             f = None
         if role == fieldsTableModel.FieldRole and f:

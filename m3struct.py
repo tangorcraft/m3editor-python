@@ -39,7 +39,7 @@ def addToList(base, name, obj):
 
 def convertFieldToInt(obj, field):
     if field in obj:
-        num = int(obj[field])
+        num = int(obj[field], 0)
         obj[field] = num
 
 TAG_HEADER_33 = m3TagFromName('MD33')
@@ -102,6 +102,7 @@ class m3Type():
     REF_SMALL = 10
     STRUCT = 11
     CHAR = 12
+    BIT = 13
 
     NAME_TO_TYPE = {
         'uint8': UINT8,
@@ -141,7 +142,8 @@ class m3Type():
         REF: 'Reference',
         REF_SMALL: 'Reference (small)',
         STRUCT: 'Structure',
-        CHAR: 'String'
+        CHAR: 'String',
+        BIT: 'Flag Bit'
     }
 
     TYPE_TO_FORMAT = {
@@ -201,7 +203,7 @@ class m3Type():
             return cls.TYPE_TO_HEX_FORMAT[type]
 
 class m3FieldInfo():
-    def __init__(self, owner: m3StructInfo, type_name, prefix, name, offset, Type = None, size = 0) -> None:
+    def __init__(self, owner: m3StructInfo, type_name, prefix, name, offset, Type = None, size = 0, bitMask = 0) -> None:
         self.owner = owner
         self.tree_parent = 0
         self.tree_row = 0
@@ -220,6 +222,7 @@ class m3FieldInfo():
         self.refToBinary = False
         self.refToVertices = False
         self.size = size
+        self.bitMask = bitMask
         self.notSelfField = True
 
     def noticeChild(self, child) -> int:
@@ -232,6 +235,14 @@ class m3FieldInfo():
         self.tree_row = self.owner.notifyParent(parent, self.getIndex())
 
     def getInfoStr(self) -> str:
+        if self.type == m3Type.BIT:
+            parent = self.owner.getField(self.tree_parent)
+            if parent.default:
+                try:
+                    default = int(parent.default, 0)
+                except TypeError:
+                    return ''
+                return 'Default' if default & self.bitMask == self.bitMask else ''
         s = ''
         delim = ''
         if self.default:
@@ -309,6 +320,9 @@ class m3StructInfo():
                 self.fields.append(field)
                 field.setParent(parent)
 
+                if IDX_BITS in f:
+                    self.putSubBitsFields(field, idx, f[IDX_BITS])
+
                 if size==0: # sub structure
                     match = re.search('(.*)V([0-9]+)$',f[Attr.TYPE])
                     if match:
@@ -339,6 +353,21 @@ class m3StructInfo():
                 )
                 self.fields.append(field)
                 field.setParent(parent_idx)
+
+    def putSubBitsFields(self, parent: m3FieldInfo, parent_idx, bits: List[Dict]):
+        for b in bits:
+            field = m3FieldInfo(
+                self,
+                'Flags Bit',
+                parent.name + SUB_STRUCT_DELIM,
+                b[Attr.NAME],
+                parent.offset,
+                m3Type.BIT,
+                parent.size,
+                b[Attr.MASK]
+            )
+            self.fields.append(field)
+            field.setParent(parent_idx)
 
     def getField(self, index) -> m3FieldInfo:
         if index in range(0, len(self.fields)):
@@ -471,6 +500,7 @@ class m3StructHandler( xml.sax.ContentHandler ):
             convertFieldToInt(self.field,Attr.SIZE)
             if not Attr.TYPE in self.field: self.field[Attr.TYPE] = ''
         elif tag==Tag.BIT:
+            convertFieldToInt(self.attr,Attr.MASK)
             addToList(self.field,IDX_BITS,self.attr.copy())
         elif tag==Tag.VER:
             convertFieldToInt(self.attr,Attr.NUM)

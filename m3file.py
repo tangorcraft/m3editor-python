@@ -32,6 +32,8 @@ IDX_REF_MODL_INDEX = 4
 RefFromTuple = Tuple[int, int, int]
 ''' Tuple( tag_index, item_index, field_index) '''
 
+SIZE_TO_FORMAT = {1: '<B', 2: '<H', 4: '<I'}
+
 class m3FileError(Exception):
     pass
 
@@ -96,6 +98,8 @@ class m3Tag():
             hex = unpack_from(m3Type.toHexFormat(field.type), self.data, offset)[0]
             hex_size = m3Type.toSize(field.type) * 2
             return f'{val} (0x{hex:0{hex_size}x})'
+        if field.type == m3Type.BIT:
+            return f'0x{field.bitMask:0{field.size*2}x}'
         #if field.type == m3Type.BINARY:
         return self.getBinaryAsStr(offset, field.size)
 
@@ -107,6 +111,15 @@ class m3Tag():
         if size > BINARY_DATA_ITEM_BYTES_COUNT:
             data_list.append('...')
         return ' '.join(data_list)
+
+    def checkBitState(self, item_idx, field: m3FieldInfo) -> bool:
+        if not field in self.info.fields:
+            raise m3FileError('Field not part of tag structure')
+        if field.type == m3Type.BIT and field.size in SIZE_TO_FORMAT:
+            offset = self.info.item_size * item_idx + field.offset
+            val = unpack_from(SIZE_TO_FORMAT[field.size], self.data, offset)[0]
+            if val & field.bitMask == field.bitMask: return True
+        return False
 
     def getReff(self, item_idx, field: m3FieldInfo) -> m3Tag:
         if not field in self.info.fields:
