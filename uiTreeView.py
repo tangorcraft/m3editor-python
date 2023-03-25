@@ -326,9 +326,25 @@ class fieldsTableModel(QAbstractItemModel):
             end = min(self.item_count, self.item_offset + self.simpleFieldsDisplayCount) * BINARY_DATA_ITEM_BYTES_COUNT - 1
             return f'0x{start:08x} - 0x{end:08x}'
         if self.tag.info.simple:
-            end = min(self.item_count, self.item_offset + self.simpleFieldsDisplayCount - 1)
+            end = min(self.item_count, self.item_offset + self.simpleFieldsDisplayCount) - 1
             return f'{self.item_offset} - {end}'
         return f'{self.tag_item}'
+
+    def navigate(self, value) -> bool:
+        if self.tag:
+            if self.binaryView or self.tag.info.simple: # value is an offset to show
+                if self.binaryView: value = value // BINARY_DATA_ITEM_BYTES_COUNT
+                if value in range(0, self.item_count):
+                    self.step = max(range(0, min(value+1, self.item_count), self.simpleFieldsDisplayCount)) // self.simpleFieldsDisplayCount
+                    self._setSimpleItemOffset(self.simpleFieldsDisplayCount * self.step)
+                    return True
+            elif self.isBaseTag and value in range(0, self.item_count):
+                if self.tag_item != value:
+                    self.beginResetModel()
+                    self.tag_item = value
+                    self.endResetModel()
+                return True
+        return False
 
     ### Tree Implementation ###
 
@@ -385,8 +401,8 @@ class fieldsTableModel(QAbstractItemModel):
             if self.isBaseTag:
                 size = min(len(self.tag.data) - offset, BINARY_DATA_ITEM_BYTES_COUNT)
             else:
+                size = min(self.tag.info.item_size - offset, BINARY_DATA_ITEM_BYTES_COUNT)
                 offset += self.tag.info.item_size * self.tag_item
-                size = min(len(self.tag.info.item_size) - offset, BINARY_DATA_ITEM_BYTES_COUNT)
             if role in (Qt.DisplayRole, Qt.StatusTipRole):
                 if col == 0:
                     return f'0x{offset:08x}'

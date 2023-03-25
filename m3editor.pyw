@@ -41,6 +41,7 @@ class mainWin(QtWidgets.QMainWindow):
         self.tagsModel = TagTreeModel()
         self.ui.tagsTree.setModel(self.tagsModel)
         self.ui.tagsTree.clicked.connect(self.tagTreeClick)
+        self.resetItemNaviText('##')
 
         self.fieldsModel = fieldsTableModel()
         self.fieldsModel.modelReset.connect(self.fieldsModelReset)
@@ -63,6 +64,7 @@ class mainWin(QtWidgets.QMainWindow):
         self.ui.btnShowBinary.clicked.connect(lambda x: self.fieldsModel.setBinaryView(x))
         self.ui.btnItemBack.clicked.connect(lambda x: self.fieldsModel.stepItemOffset(-1))
         self.ui.btnItemForw.clicked.connect(lambda x: self.fieldsModel.stepItemOffset(1))
+        self.ui.edtItemNavi.editingFinished.connect(self.itemNaviEdited)
 
         self.ui.actionOpen.triggered.connect(self.openM3)
 
@@ -76,17 +78,36 @@ class mainWin(QtWidgets.QMainWindow):
         with open('options.ini','w') as cfgFile:
             self.cfg.write(cfgFile)
 
+    def resetItemNaviText(self, new_text = None):
+        if new_text:
+            self.itemNaviText = new_text
+        self.ui.edtItemNavi.setText(self.itemNaviText)
+
     ## SLOTS ##
 
     def setSDC(self, checked, value):
         if checked:
             self.fieldsModel.setSimpleFieldsDisplayCount(value)
 
+    def itemNaviEdited(self):
+        text = self.ui.edtItemNavi.text()
+        if self.fieldsModel.tag and text != self.itemNaviText:
+            try:
+                val = int(text)
+                if self.fieldsModel.navigate(val):
+                    return
+                else:
+                    self.resetItemNaviText()
+                    QtWidgets.QMessageBox.warning(self, 'Item not found', f'Item with index "{val}" is not found')
+            except ValueError:
+                self.resetItemNaviText()
+                QtWidgets.QMessageBox.critical(self, 'Ivalid input', f'"{text}" is not a valid integer value')
+
     def treeTagSelected(self, tag, item = -1):
         self.fieldsModel.setM3Tag(tag, item)
 
     def fieldsModelReset(self):
-        self.ui.edtItemNavi.setText(self.fieldsModel.getTagItemIndexStr())
+        self.resetItemNaviText(self.fieldsModel.getTagItemIndexStr())
 
     ## EVENTS ##
 
