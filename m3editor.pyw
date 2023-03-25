@@ -108,6 +108,9 @@ class mainWin(QtWidgets.QMainWindow):
 
     def fieldsModelReset(self):
         self.resetItemNaviText(self.fieldsModel.getTagItemIndexStr())
+        self.ui.edtItemNavi.setReadOnly(not self.fieldsModel.isBaseTag)
+        self.ui.btnItemBack.setEnabled(self.fieldsModel.isBaseTag)
+        self.ui.btnItemForw.setEnabled(self.fieldsModel.isBaseTag)
 
     ## EVENTS ##
 
