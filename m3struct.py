@@ -220,6 +220,7 @@ class m3FieldInfo():
         self.refToBinary = False
         self.refToVertices = False
         self.size = size
+        self.notSelfField = True
 
     def noticeChild(self, child) -> int:
         idx = len(self.tree_children)
@@ -276,7 +277,9 @@ class m3StructInfo():
                 self.item_size = m3Type.toSize(self.type)
                 self.fields.append( m3FieldInfo(self, struct[IDX_FIELDS][0][Attr.TYPE], '', 'value', 0, self.type) )
             else:
-                self.fields.append( m3FieldInfo(self, self.name, '', '*** Self ***', 0, self.type) )
+                field = m3FieldInfo(self, self.name, '', '*** Self ***', 0, self.type)
+                field.notSelfField = False
+                self.fields.append( field )
                 self.item_size = self.putSubStructureFields(structFile, struct, 0, '', ver)
 
     def putSubStructureFields(self, structFile: m3StructFile, struct, offset, prefix, ver, parent = 0):

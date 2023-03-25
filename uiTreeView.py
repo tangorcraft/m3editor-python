@@ -23,7 +23,11 @@ SHADOW_GRP_COUNT = 20
 
 DEFAULT_SIMPLE_FIELDS_DISPLAY_COUNT = 50
 
-def clampi(val: int, min: int, max: int):
+def ceildiv(a: int, b: int) -> int:
+    '''Ceil division, same as ceil(a/b)'''
+    return -(a//-b)
+
+def clampi(val: int, min: int, max: int) -> int:
     return min if val < min else max if val > max else val
 
 class ShadowItem():
@@ -137,7 +141,7 @@ class ShadowTree():
 
     def processItem(self, tree_item, tag: m3Tag, item_idx):
         for f in tag.info.fields:
-            if f.type in m3Type.REFS and tag.refIsValid(item_idx, f):
+            if f.notSelfField and f.type in m3Type.REFS and tag.refIsValid(item_idx, f):
                 self.processTag(tree_item, tag.getReff(item_idx, f), f)
 
     def processGroup(self, parent, tag: m3Tag, start):
@@ -237,48 +241,99 @@ class TagTreeModel(QAbstractItemModel):
 class fieldsTableModel(QAbstractItemModel):
     FieldRole = Qt.UserRole # type: 'Qt.ItemDataRole'
     SimpleFieldOffsetRole = Qt.UserRole + 1 # type: 'Qt.ItemDataRole'
+    BinaryViewOffsetRole = Qt.UserRole + 2 # type: 'Qt.ItemDataRole'
 
     def __init__(self, tag: m3Tag = None) -> None:
         self.tag = tag
         self.simpleFieldsDisplayCount = DEFAULT_SIMPLE_FIELDS_DISPLAY_COUNT
+        self.binaryView = False
+        self.isBaseTag = False # when selecting tag itself in tags tree, not one of its items
         super().__init__(None)
 
     def setM3Tag(self, tag: m3Tag, tag_item: int):
         if not tag: return
         self.beginResetModel()
         self.tag = tag
-        self.tag_item = tag_item
-        if self.tag.info.simple:
-            self.item_offset = 0
-            self.step = 0
-            if self.tag.info.type == m3Type.BINARY:
-                self.step_max = max(range(0, len(self.tag.data)//BINARY_DATA_ITEM_BYTES_COUNT, self.simpleFieldsDisplayCount))
-            else:
-                self.step_max = max(range(0, self.tag.count, self.simpleFieldsDisplayCount))
+        self.isBaseTag = False if tag_item in range(0, tag.count) else True
+        if self.isBaseTag:
+            self.tag_item = 0
+        else:
+            self.tag_item = tag_item
+        self._updateItemCount()
+        self.item_offset = 0
+        self.step = 0
         self.endResetModel()
 
-    def setSimpleItemOffset(self, offset: int):
-        self.beginResetModel()
-        self.item_offset = offset
-        self.endResetModel()
+    def _setSimpleItemOffset(self, offset: int):
+        if self.item_offset != offset:
+            self.beginResetModel()
+            self.item_offset = offset
+            self.endResetModel()
 
-    def stepSimpleItemOffset(self, step: int):
-        if self.tag and self.tag.info.simple:
+    def stepItemOffset(self, step: int):
+        if self.tag and (self.tag.info.simple or self.binaryView):
             self.step = clampi(self.step + step, 0, self.step_max)
-            self.setSimpleItemOffset(self.simpleFieldsDisplayCount * step)
+            self._setSimpleItemOffset(self.simpleFieldsDisplayCount * self.step)
+        elif self.isBaseTag:
+            tag_item = clampi(self.tag_item + step, 0, self.item_count - 1)
+            if self.tag_item != tag_item:
+                self.beginResetModel()
+                self.tag_item = tag_item
+                self.endResetModel()
 
     def setSimpleFieldsDisplayCount(self, value: int):
-        if self.tag and self.tag.info.simple:
+        if self.tag and (self.tag.info.simple or self.binaryView):
             self.beginResetModel()
             self.simpleFieldsDisplayCount = value
+            self.step_max = max(range(0, self.item_count, self.simpleFieldsDisplayCount)) // self.simpleFieldsDisplayCount
+            self.step = clampi(self.step, 0, self.step_max)
+            self.item_offset = self.simpleFieldsDisplayCount * self.step
             self.endResetModel()
         else:
             self.simpleFieldsDisplayCount = value
 
+    def setBinaryView(self, value: bool):
+        if self.binaryView != value:
+            if self.tag:
+                self.beginResetModel()
+                self.binaryView = value
+                self._updateItemCount()
+                self._updateItemOffset()
+                self.endResetModel()
+            else:
+                self.binaryView = value
+
+    def _updateItemCount(self):
+        if self.tag.info.type == m3Type.BINARY:
+            self.item_count = ceildiv(len(self.tag.data), BINARY_DATA_ITEM_BYTES_COUNT)
+        elif self.binaryView:
+            if self.isBaseTag:
+                self.item_count = ceildiv(len(self.tag.data), BINARY_DATA_ITEM_BYTES_COUNT)
+            else:
+                self.item_count = ceildiv(self.tag.info.item_size, BINARY_DATA_ITEM_BYTES_COUNT)
+        else:
+            self.item_count = self.tag.count
+        self.step_max = max(range(0, self.item_count, self.simpleFieldsDisplayCount)) // self.simpleFieldsDisplayCount
+
+    def _updateItemOffset(self):
+        self.step = clampi(self.step, 0, self.step_max)
+        self.item_offset = clampi(self.item_offset, 0, self.item_count - 1)
+
+    def getTagItemIndexStr(self) -> str:
+        if not self.tag: return '##'
+        if self.binaryView:
+            start = self.item_offset * BINARY_DATA_ITEM_BYTES_COUNT
+            end = min(self.item_count, self.item_offset + self.simpleFieldsDisplayCount) * BINARY_DATA_ITEM_BYTES_COUNT - 1
+            return f'0x{start:08x} - 0x{end:08x}'
+        if self.tag.info.simple:
+            end = min(self.item_count, self.item_offset + self.simpleFieldsDisplayCount - 1)
+            return f'{self.item_offset} - {end}'
+        return f'{self.tag_item}'
+
     ### Tree Implementation ###
 
     def index(self, row: int, column: int, parent: QModelIndex) -> QModelIndex:
-        if self.tag.info.simple:
+        if self.tag.info.simple or self.binaryView:
             if parent.isValid(): return QModelIndex()
             return self.createIndex(row, column, row*10+column)
         elif parent.isValid():
@@ -290,7 +345,7 @@ class fieldsTableModel(QAbstractItemModel):
         return QModelIndex
 
     def parent(self, child: QModelIndex) -> QModelIndex:
-        if self.tag.info.simple:
+        if self.tag.info.simple or self.binaryView:
             pass
         elif child.isValid():
             f = self.tag.info.getFieldParent(child.internalId())
@@ -300,17 +355,13 @@ class fieldsTableModel(QAbstractItemModel):
 
     def rowCount(self, parent: QModelIndex) -> int:
         if self.tag:
+            if self.tag.info.simple or self.binaryView:
+                if parent.isValid(): return 0
+                return min(self.item_count - self.item_offset, self.simpleFieldsDisplayCount)
             if parent.isValid() and parent.column()==0:
                 f = self.tag.info.getField(parent.internalId())
-                if f: return len(f.tree_children)
-            else:
-                if self.tag.info.simple:
-                    if self.tag.info.type == m3Type.BINARY:
-                        count = len(self.tag.data)//BINARY_DATA_ITEM_BYTES_COUNT - self.item_offset
-                    else:
-                        count = self.tag.count - self.item_offset
-                    return min(count, self.simpleFieldsDisplayCount)
-                return len(self.tag.info.root_fields)
+                return len(f.tree_children) if f else 0
+            return len(self.tag.info.root_fields)
         return 0
 
     def columnCount(self, parent: QModelIndex) -> int:
@@ -321,13 +372,33 @@ class fieldsTableModel(QAbstractItemModel):
             return None
         if role == fieldsTableModel.SimpleFieldOffsetRole:
             return None
+        if role == fieldsTableModel.BinaryViewOffsetRole:
+            return None
         return QVariant()
 
     def data(self, index: QModelIndex, role: int):
         if not (index.isValid() and self.tag):
             return self.dataDefault(role)
         col = index.column()
-        if self.tag.info.simple:
+        if self.binaryView:
+            offset = (self.item_offset + index.row()) * BINARY_DATA_ITEM_BYTES_COUNT
+            if self.isBaseTag:
+                size = min(len(self.tag.data) - offset, BINARY_DATA_ITEM_BYTES_COUNT)
+            else:
+                offset += self.tag.info.item_size * self.tag_item
+                size = min(len(self.tag.info.item_size) - offset, BINARY_DATA_ITEM_BYTES_COUNT)
+            if role in (Qt.DisplayRole, Qt.StatusTipRole):
+                if col == 0:
+                    return f'0x{offset:08x}'
+                elif col == 1:
+                    return 'HEX'
+                elif col == 2:
+                    return ''
+                elif col == 3:
+                    return self.tag.getBinaryAsStr(offset, size)
+            if role == fieldsTableModel.BinaryViewOffsetRole:
+                return offset
+        elif self.tag.info.simple:
             f = self.tag.info.fields[0]
             item = self.item_offset + index.row()
             if role in (Qt.DisplayRole, Qt.StatusTipRole):
@@ -357,7 +428,14 @@ class fieldsTableModel(QAbstractItemModel):
         if role == fieldsTableModel.FieldRole and f:
             return f
         return self.dataDefault(role)
-    
+
+    def hasChildren(self, parent: QModelIndex) -> bool:
+        if not parent.isValid(): return True
+        if self.tag and not self.binaryView and not self.tag.info.simple and parent.column()==0:
+            f = self.tag.info.getField(parent.internalId())
+            return len(f.tree_children) > 0
+        return False
+
     def headerData(self, section: int, orientation: Qt.Orientation, role: int):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             if section==0:

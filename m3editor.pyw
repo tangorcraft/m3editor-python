@@ -36,12 +36,14 @@ class mainWin(QtWidgets.QMainWindow):
 
         self.ui = Ui_m3ew()
         self.ui.setupUi(self)
+        self.font().setStyleHint(QtGui.QFont.Monospace, QtGui.QFont.PreferDefault)
 
         self.tagsModel = TagTreeModel()
         self.ui.tagsTree.setModel(self.tagsModel)
         self.ui.tagsTree.clicked.connect(self.tagTreeClick)
 
         self.fieldsModel = fieldsTableModel()
+        self.fieldsModel.modelReset.connect(self.fieldsModelReset)
         self.ui.fieldsTable.setModel(self.fieldsModel)
         self.ui.fieldsTable.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
         self.ui.fieldsTable.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
@@ -58,6 +60,10 @@ class mainWin(QtWidgets.QMainWindow):
         self.ui.actionSimpleDisplayCount200.triggered.connect(lambda x: self.setSDC(x, 200))
         self.ui.actionSimpleDisplayCount500.triggered.connect(lambda x: self.setSDC(x, 500))
 
+        self.ui.btnShowBinary.clicked.connect(lambda x: self.fieldsModel.setBinaryView(x))
+        self.ui.btnItemBack.clicked.connect(lambda x: self.fieldsModel.stepItemOffset(-1))
+        self.ui.btnItemForw.clicked.connect(lambda x: self.fieldsModel.stepItemOffset(1))
+
         self.ui.actionOpen.triggered.connect(self.openM3)
 
     def setIniOption(self, sect, opt, val, saveINI = False):
@@ -70,12 +76,17 @@ class mainWin(QtWidgets.QMainWindow):
         with open('options.ini','w') as cfgFile:
             self.cfg.write(cfgFile)
 
+    ## SLOTS ##
+
     def setSDC(self, checked, value):
         if checked:
             self.fieldsModel.setSimpleFieldsDisplayCount(value)
 
-    def eventFilter(self, obj: 'QObject', ev: 'QEvent') -> bool:
-        return super().eventFilter(obj, ev)
+    def treeTagSelected(self, tag, item = -1):
+        self.fieldsModel.setM3Tag(tag, item)
+
+    def fieldsModelReset(self):
+        self.ui.edtItemNavi.setText(self.fieldsModel.getTagItemIndexStr())
 
     ## EVENTS ##
 
@@ -83,15 +94,15 @@ class mainWin(QtWidgets.QMainWindow):
         if item.isValid():
             shadow = item.data(Qt.UserRole) # type: ShadowItem
             if shadow.tag:
-                tag_item = shadow.tag_item if shadow.tag_item in range(0, shadow.tag.count) else 0
-                self.fieldsModel.setM3Tag(shadow.tag, tag_item)
+                self.treeTagSelected(shadow.tag, shadow.tag_item)
 
     def openM3(self):
-        fname, filter = QtWidgets.QFileDialog.getOpenFileName(self, 'Open m3 model',self.lastFile,"M3 Model (*.m3)")
+        fname, filter = QtWidgets.QFileDialog.getOpenFileName(self, 'Open m3 model', self.lastFile, "M3 Model (*.m3 *.m3a)")
         if os.path.exists(fname):
             self.lastFile =  fname
             self.m3 = m3File(fname, self.struct)
             self.tagsModel.changeM3(self.m3)
+            self.treeTagSelected(self.m3.modl)
 
     def closeEvent(self, ev: QtGui.QCloseEvent) -> None:
         self.saveIni()
@@ -100,7 +111,7 @@ class mainWin(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])
     appWin = mainWin()
-    app.installEventFilter(appWin)
+    #app.installEventFilter(appWin)
     appWin.show()
 
     sys.exit(app.exec())

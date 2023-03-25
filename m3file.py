@@ -97,11 +97,14 @@ class m3Tag():
             hex_size = m3Type.toSize(field.type) * 2
             return f'{val} (0x{hex:0{hex_size}x})'
         #if field.type == m3Type.BINARY:
-        end_offset = offset + min(field.size, BINARY_DATA_ITEM_BYTES_COUNT)
+        return self.getBinaryAsStr(offset, field.size)
+
+    def getBinaryAsStr(self, offset, size):
+        end_offset = offset + min(size, BINARY_DATA_ITEM_BYTES_COUNT)
         data_list = [f'{x:02x}' for x in self.data[offset:end_offset]]
         for i in range(4, len(data_list), 4):
             data_list[i] = ' ' + data_list[i]
-        if field.size > BINARY_DATA_ITEM_BYTES_COUNT:
+        if size > BINARY_DATA_ITEM_BYTES_COUNT:
             data_list.append('...')
         return ' '.join(data_list)
 
@@ -177,7 +180,7 @@ class m3File():
         for tag in self.tags:
             for idx in range(0, tag.count):
                 for f in tag.info.fields:
-                    if f.isRef() and tag.refIsValid(idx, f):
+                    if f.notSelfField and f.isRef() and tag.refIsValid(idx, f):
                         tag.getReff(idx, f).addRefFrom(tag.idx, idx, f)
         self.orphans.clear()
         for tag in self.tags:
