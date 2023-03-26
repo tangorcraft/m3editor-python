@@ -45,6 +45,7 @@ class mainWin(QtWidgets.QMainWindow):
 
         self.fieldsModel = fieldsTableModel()
         self.fieldsModel.modelReset.connect(self.fieldsModelReset)
+        self.fieldsModel.dataChanged.connect(lambda a,b: self.fieldsDataChanged())
         self.fieldsFilterModel = QSortFilterProxyModel()
         self.fieldsFilterModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
         self.fieldsFilterModel.setFilterRole(Qt.StatusTipRole)
@@ -53,6 +54,7 @@ class mainWin(QtWidgets.QMainWindow):
         self.ui.fieldsTable.setModel(self.fieldsFilterModel)
         #self.ui.fieldsTable.setModel(self.fieldsModel)
 
+        self.ui.fieldsTable.clicked.connect(lambda x: self.ui.fieldsTable.expand(x))
         self.ui.fieldsTable.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
         self.ui.fieldsTable.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
         self.ui.fieldsTable.header().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
@@ -93,6 +95,10 @@ class mainWin(QtWidgets.QMainWindow):
 
     ## SLOTS ##
 
+    def fieldsDataChanged(self):
+        self.resetItemNaviText(self.fieldsModel.getTagItemIndexStr())
+        self.fieldsFilterModel.dataChanged.emit(QModelIndex(), QModelIndex())
+
     def setSDC(self, checked, value):
         if checked:
             self.fieldsModel.setSimpleFieldsDisplayCount(value)
@@ -127,6 +133,8 @@ class mainWin(QtWidgets.QMainWindow):
             shadow = item.data(Qt.UserRole) # type: ShadowItem
             if shadow.tag:
                 self.treeTagSelected(shadow.tag, shadow.tag_item)
+                if self.ui.actionFields_Auto_Expand_All.isChecked():
+                    self.ui.fieldsTable.expandAll()
 
     def openM3(self):
         fname, filter = QtWidgets.QFileDialog.getOpenFileName(self, 'Open m3 model', self.lastFile, "M3 Model (*.m3 *.m3a)")

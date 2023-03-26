@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'n:\PyProjects\m3pyw\editorWindow.ui'
+# Form implementation generated from reading ui file 'n:\PyProjects\m3editor-python\editorWindow.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.2
 #
@@ -144,6 +144,7 @@ class Ui_m3ew(object):
         self.fieldsTable.setAlternatingRowColors(True)
         self.fieldsTable.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.fieldsTable.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.fieldsTable.setExpandsOnDoubleClick(False)
         self.fieldsTable.setObjectName("fieldsTable")
         self.verticalLayout_3.addWidget(self.splitter)
         self.tabWidget.addTab(self.tabTreeView, "")
@@ -177,12 +178,16 @@ class Ui_m3ew(object):
         self.actionSimpleDisplayCount500 = QtWidgets.QAction(m3ew)
         self.actionSimpleDisplayCount500.setCheckable(True)
         self.actionSimpleDisplayCount500.setObjectName("actionSimpleDisplayCount500")
+        self.actionFields_Auto_Expand_All = QtWidgets.QAction(m3ew)
+        self.actionFields_Auto_Expand_All.setCheckable(True)
+        self.actionFields_Auto_Expand_All.setObjectName("actionFields_Auto_Expand_All")
         self.menuFile.addAction(self.actionOpen)
         self.menuSimple_and_Binary_Display_Count.addAction(self.actionSimpleDisplayCount50)
         self.menuSimple_and_Binary_Display_Count.addAction(self.actionSimpleDisplayCount100)
         self.menuSimple_and_Binary_Display_Count.addAction(self.actionSimpleDisplayCount200)
         self.menuSimple_and_Binary_Display_Count.addAction(self.actionSimpleDisplayCount500)
         self.menuView.addAction(self.menuSimple_and_Binary_Display_Count.menuAction())
+        self.menuView.addAction(self.actionFields_Auto_Expand_All)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuView.menuAction())
 
@@ -209,3 +214,5 @@ class Ui_m3ew(object):
         self.actionSimpleDisplayCount100.setText(_translate("m3ew", "100"))
         self.actionSimpleDisplayCount200.setText(_translate("m3ew", "200"))
         self.actionSimpleDisplayCount500.setText(_translate("m3ew", "500"))
+        self.actionFields_Auto_Expand_All.setText(_translate("m3ew", "Fields Auto Expand All"))
+        self.actionFields_Auto_Expand_All.setStatusTip(_translate("m3ew", "Expand all fields when tag tree item is selected"))

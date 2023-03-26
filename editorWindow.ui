@@ -292,6 +292,9 @@
             <property name="selectionBehavior">
              <enum>QAbstractItemView::SelectRows</enum>
             </property>
+            <property name="expandsOnDoubleClick">
+             <bool>false</bool>
+            </property>
            </widget>
           </widget>
          </widget>
@@ -331,6 +334,7 @@
      <addaction name="actionSimpleDisplayCount500"/>
     </widget>
     <addaction name="menuSimple_and_Binary_Display_Count"/>
+    <addaction name="actionFields_Auto_Expand_All"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
@@ -374,6 +378,17 @@
    </property>
    <property name="text">
     <string>500</string>
+   </property>
+  </action>
+  <action name="actionFields_Auto_Expand_All">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Fields Auto Expand All</string>
+   </property>
+   <property name="statusTip">
+    <string>Expand all fields when tag tree item is selected</string>
    </property>
   </action>
  </widget>

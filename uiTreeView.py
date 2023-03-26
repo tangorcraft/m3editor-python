@@ -277,9 +277,8 @@ class fieldsTableModel(QAbstractItemModel):
         elif self.isBaseTag:
             tag_item = clampi(self.tag_item + step, 0, self.item_count - 1)
             if self.tag_item != tag_item:
-                self.beginResetModel()
                 self.tag_item = tag_item
-                self.endResetModel()
+                self.dataChanged.emit(QModelIndex(), QModelIndex())
 
     def setSimpleFieldsDisplayCount(self, value: int):
         if self.tag and (self.tag.info.simple or self.binaryView):
@@ -340,9 +339,8 @@ class fieldsTableModel(QAbstractItemModel):
                     return True
             elif self.isBaseTag and value in range(0, self.item_count):
                 if self.tag_item != value:
-                    self.beginResetModel()
                     self.tag_item = value
-                    self.endResetModel()
+                    self.dataChanged.emit(QModelIndex(), QModelIndex())
                 return True
         return False
 
@@ -358,7 +356,7 @@ class fieldsTableModel(QAbstractItemModel):
                 return self.createIndex(row, column, f.tree_children[row])
         elif row in range(0, len(self.tag.info.root_fields)):
             return self.createIndex(row, column, self.tag.info.root_fields[row])
-        return QModelIndex
+        return QModelIndex()
 
     def parent(self, child: QModelIndex) -> QModelIndex:
         if self.tag.info.simple or self.binaryView:
