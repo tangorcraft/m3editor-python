@@ -45,7 +45,14 @@ class mainWin(QtWidgets.QMainWindow):
 
         self.fieldsModel = fieldsTableModel()
         self.fieldsModel.modelReset.connect(self.fieldsModelReset)
-        self.ui.fieldsTable.setModel(self.fieldsModel)
+        self.fieldsFilterModel = QSortFilterProxyModel()
+        self.fieldsFilterModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
+        self.fieldsFilterModel.setFilterRole(Qt.StatusTipRole)
+        self.fieldsFilterModel.setRecursiveFilteringEnabled(True)
+        self.fieldsFilterModel.setSourceModel(self.fieldsModel)
+        self.ui.fieldsTable.setModel(self.fieldsFilterModel)
+        #self.ui.fieldsTable.setModel(self.fieldsModel)
+
         self.ui.fieldsTable.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
         self.ui.fieldsTable.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
         self.ui.fieldsTable.header().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
@@ -65,6 +72,7 @@ class mainWin(QtWidgets.QMainWindow):
         self.ui.btnItemBack.clicked.connect(lambda x: self.fieldsModel.stepItemOffset(-1))
         self.ui.btnItemForw.clicked.connect(lambda x: self.fieldsModel.stepItemOffset(1))
         self.ui.edtItemNavi.editingFinished.connect(self.itemNaviEdited)
+        self.ui.edtItemFilter.textEdited.connect(self.fieldsFilterModel.setFilterFixedString)
 
         self.ui.actionOpen.triggered.connect(self.openM3)
 

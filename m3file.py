@@ -29,6 +29,8 @@ IDX_VER = 3
 IDX_REF_MODL_INDEX = 4
 #IDX_REF_MODL_FLAGS = 5
 
+FIELD_NOT_PART_OF_TAG = 'Field is not a part of tag structure'
+
 RefFromTuple = Tuple[int, int, int]
 ''' Tuple( tag_index, item_index, field_index) '''
 
@@ -66,7 +68,7 @@ class m3Tag():
 
     def getFieldInfoStr(self, field: m3FieldInfo):
         if not field in self.info.fields:
-            raise m3FileError('Field not part of tag structure')
+            raise m3FileError(FIELD_NOT_PART_OF_TAG)
         if field.type == m3Type.CHAR:
             return f'Size = {self.count}'
         if field.type == m3Type.BINARY:
@@ -75,7 +77,7 @@ class m3Tag():
 
     def getFieldAsStr(self, item_idx, field: m3FieldInfo) -> str:
         if not field in self.info.fields:
-            raise m3FileError('Field not part of tag structure')
+            raise m3FileError(FIELD_NOT_PART_OF_TAG)
         if field.type == m3Type.CHAR:
             return self.getStr()
         offset = field.getDataOffset(item_idx)
@@ -114,7 +116,7 @@ class m3Tag():
 
     def checkBitState(self, item_idx, field: m3FieldInfo) -> bool:
         if not field in self.info.fields:
-            raise m3FileError('Field not part of tag structure')
+            raise m3FileError(FIELD_NOT_PART_OF_TAG)
         if field.type == m3Type.BIT and field.size in SIZE_TO_FORMAT:
             offset = self.info.item_size * item_idx + field.offset
             val = unpack_from(SIZE_TO_FORMAT[field.size], self.data, offset)[0]
@@ -123,7 +125,7 @@ class m3Tag():
 
     def getReff(self, item_idx, field: m3FieldInfo) -> m3Tag:
         if not field in self.info.fields:
-            raise m3FileError('Field is not a part of tag structure')
+            raise m3FileError(FIELD_NOT_PART_OF_TAG)
         if not field.isRef():
             raise m3FileError(f'Field is not a reference ({field.type_name})')
         offset = field.getDataOffset(item_idx)
@@ -148,7 +150,7 @@ class m3Tag():
 
     def refIsValid(self, item_idx, field: m3FieldInfo) -> bool:
         if not field in self.info.fields:
-            raise m3FileError('Field not part of tag structure')
+            raise m3FileError(FIELD_NOT_PART_OF_TAG)
         if not field.isRef():
             raise m3FileError(f'Field is not a reference ({field.type_name})')
         offset = field.getDataOffset(item_idx)

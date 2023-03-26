@@ -213,7 +213,7 @@ class m3FieldInfo():
         else:
             self.type = Type
         self.type_name = type_name
-        self.name = prefix + name
+        self.name = prefix + name # type: str
         self.display_name = name
         self.offset = offset
         self.default = None
@@ -539,5 +539,24 @@ if __name__ == '__main__':
     print('Processing Structures.xml')
     parser.parse(sfile_name)
 
+    out_file = open('m3.py', 'w')
+
+    def parseSubField(struct, prefix_k, prefix_v, typ):
+        for f in sfile.structByName[typ][IDX_FIELDS]:
+            struct[prefix_k + f[Attr.NAME]] = prefix_v + f[Attr.NAME]
+            size = m3Type.toSize(m3Type.fromName(f[Attr.TYPE]))
+            if not Attr.SIZE in f and size==0:
+                match = re.search('(.*)V([0-9]+)$',f[Attr.TYPE])
+                if match:
+                    n = match.group(1)
+                else:
+                    n = f[Attr.TYPE]
+                if n in sfile.structByName:
+                    parseSubField(struct, prefix_k + f[Attr.NAME] + '_', prefix_v + f[Attr.NAME] + SUB_STRUCT_DELIM, n)
+
     for s in sfile.structByName:
-        pass
+        struct = {}
+        parseSubField(struct, '', '', s)
+        out_file.write(f'class {s}:\n')
+        for f in struct:
+            out_file.write(f"    {f} = '{struct[f]}'\n")
