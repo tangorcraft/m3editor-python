@@ -103,16 +103,19 @@ class m3Type():
     INT16 = 6
     INT32 = 7
     FLOAT = 8
-    REF = 9
-    REF_SMALL = 10
-    STRUCT = 11
-    CHAR = 12
-    BIT = 13
-    VERTEX = 14
+    FIXED8 = 9
+    FIXED16 = 10
+    REF = 11
+    REF_SMALL = 12
+    STRUCT = 13
+    CHAR = 14
+    BIT = 15
+    VERTEX = 16
 
     NAME_TO_TYPE = {
         'uint8': UINT8,
-        'fixed8': UINT8,
+        'fixed8': FIXED8,
+        'fixed16': FIXED16,
         'uint16': UINT16,
         'uint32': UINT32,
         'tag': UINT32,
@@ -132,6 +135,8 @@ class m3Type():
         INT16: 2,
         INT32: 4,
         FLOAT: 4,
+        FIXED8: 1,
+        FIXED16: 2,
         REF: calcsize('<III'),
         REF_SMALL: calcsize('<II'),
     }
@@ -145,6 +150,8 @@ class m3Type():
         INT16: 'Int16',
         INT32: 'Int32',
         FLOAT: 'Float',
+        FIXED8: 'Fixed8',
+        FIXED16: 'Fixed16',
         REF: 'Reference',
         REF_SMALL: 'Reference (small)',
         STRUCT: 'Structure',
@@ -154,6 +161,8 @@ class m3Type():
 
     TYPE_TO_FORMAT = {
         UINT8: '<B',
+        FIXED8: '<B',
+        FIXED16: '<h',
         UINT16: '<H',
         UINT32: '<I',
         INT8: '<b',
@@ -164,6 +173,8 @@ class m3Type():
 
     TYPE_TO_HEX_FORMAT = {
         UINT8: '<B',
+        FIXED8: '<B',
+        FIXED16: '<H',
         UINT16: '<H',
         UINT32: '<I',
         INT8: '<B',
@@ -172,7 +183,7 @@ class m3Type():
         FLOAT: '<I',
     }
 
-    SIMPLE = (UINT8, UINT16, UINT32, INT8, INT16, INT32, FLOAT)
+    SIMPLE = (UINT8, UINT16, UINT32, INT8, INT16, INT32, FLOAT, FIXED8, FIXED16)
     REFS = (REF, REF_SMALL)
 
     @classmethod

@@ -123,14 +123,14 @@
             <field name="z" type="fixed8"/>
         </fields>
     </structure>
-    <structure name="Vector2As2int16">
+    <structure name="Vector2As2fixed16">
         <description>A vector out of int16 values which must be converted with the formula (i / 2048.0) to get the actual float value</description>
         <versions>
             <version number="0" size="4" />
         </versions>
         <fields>
-            <field name="x" type="int16"/>
-            <field name="y" type="int16" />
+            <field name="x" type="fixed16"/>
+            <field name="y" type="fixed16" />
         </fields>
     </structure>
     <structure name="COL">
@@ -452,13 +452,13 @@
             <field name="normal" type="Vector3As3Fixed8V0" />
             <field name="sign" type="fixed8" />
             <field name="color" type="COLV0" mask="0x200"/>
-            <field name="uv0" type="Vector2As2int16V0" />
-            <field name="uv1" type="Vector2As2int16V0" mask="0x40000" />
-            <field name="uv2" type="Vector2As2int16V0" mask="0x80000" />
-            <field name="uv3" type="Vector2As2int16V0" mask="0x100000" />
-            <field name="uv4" type="Vector2As2int16V0" mask="0x200000" />
-            <field name="uv5" type="Vector2As2int16V0" mask="0x400000" />
-            <field name="uv6" type="Vector2As2int16V0" mask="0x40000000" />
+            <field name="uv0" type="Vector2As2fixed16V0" />
+            <field name="uv1" type="Vector2As2fixed16V0" mask="0x40000" />
+            <field name="uv2" type="Vector2As2fixed16V0" mask="0x80000" />
+            <field name="uv3" type="Vector2As2fixed16V0" mask="0x100000" />
+            <field name="uv4" type="Vector2As2fixed16V0" mask="0x200000" />
+            <field name="uv5" type="Vector2As2fixed16V0" mask="0x400000" />
+            <field name="uv6" type="Vector2As2fixed16V0" mask="0x40000000" />
             <field name="tangent" type="Vector3As3Fixed8V0" />
             <field name="tan_sign" type="fixed8" default-value="1.0" hint="Can be -1.0 in old 3ds max exporter files"/>
         </fields>

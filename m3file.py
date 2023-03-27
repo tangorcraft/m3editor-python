@@ -102,6 +102,10 @@ class m3Tag():
         if field.type in m3Type.SIMPLE:
             val = unpack_from(m3Type.toFormat(field.type), self.data, offset)[0]
             hex = unpack_from(m3Type.toHexFormat(field.type), self.data, offset)[0]
+            if field.type == m3Type.FIXED8:
+                val = (val / 255.0) * 2 - 1
+            if field.type == m3Type.FIXED16:
+                val = val / 2048.0
             hex_size = m3Type.toSize(field.type) * 2
             return f'{val} (0x{hex:0{hex_size}x})'
         if field.type == m3Type.BIT:
