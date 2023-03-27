@@ -42,6 +42,9 @@ def convertFieldToInt(obj, field):
         num = int(obj[field], 0)
         obj[field] = num
 
+def checkMask(value: int, mask: int) -> bool:
+    return True if value & mask == mask else False
+
 TAG_HEADER_33 = m3TagFromName('MD33')
 TAG_HEADER_34 = m3TagFromName('MD34')
 TAG_CHAR = m3TagFromName('CHAR')
@@ -61,6 +64,8 @@ IDX_SIMPLE = 9
 SUB_STRUCT_DELIM = '.'
 
 BINARY_DATA_ITEM_BYTES_COUNT = 16
+
+VERTICES_STRUCT_UNIVERSAL = 'VertexFormat'
 
 class Tag:
     STRUCT = 'structure'
@@ -103,6 +108,7 @@ class m3Type():
     STRUCT = 11
     CHAR = 12
     BIT = 13
+    VERTEX = 14
 
     NAME_TO_TYPE = {
         'uint8': UINT8,
@@ -293,11 +299,12 @@ class m3StructInfo():
                 self.fields.append( field )
                 self.item_size = self.putSubStructureFields(structFile, struct, 0, '', ver)
 
-    def putSubStructureFields(self, structFile: m3StructFile, struct, offset, prefix, ver, parent = 0):
+    def putSubStructureFields(self, structFile: m3StructFile, struct, offset, prefix, ver, parent = 0, flags = 0):
         if struct:
             for f in struct[IDX_FIELDS]:
                 if Attr.SINCE_VER in f and f[Attr.SINCE_VER] > ver: continue
                 if Attr.TILL_VER in f and f[Attr.TILL_VER] < ver: continue
+                if flags and Attr.MASK in f and not checkMask(flags, f[Attr.MASK]): continue
                 field = m3FieldInfo( self, f[Attr.TYPE], prefix, f[Attr.NAME], offset )
                 if Attr.DEFAULT in f:
                     field.default = f[Attr.DEFAULT]
@@ -373,6 +380,11 @@ class m3StructInfo():
         if index in range(0, len(self.fields)):
             return self.fields[index]
 
+    def getFieldByName(self, name) -> m3FieldInfo:
+        for f in self.fields:
+            if f.name == name:
+                return f
+
     def getFieldParent(self, index) -> m3FieldInfo:
         if index in range(0, len(self.fields)):
             parent = self.fields[index].tree_parent
@@ -382,11 +394,25 @@ class m3StructInfo():
     def forceBinary(self):
         self.hasRefs = False
         self.fields = [] # type: List[m3FieldInfo]
-        self.root_fields = 1
+        self.root_fields = [0]
         self.type = m3Type.BINARY
         self.simple = True
         self.item_size = BINARY_DATA_ITEM_BYTES_COUNT
         self.fields.append( m3FieldInfo(self, 'Binary', '', 'bytes', 0, m3Type.BINARY, BINARY_DATA_ITEM_BYTES_COUNT) )
+
+    def forceVertices(self, structFile: m3StructFile, vflags: int):
+        struct = structFile.ByName(VERTICES_STRUCT_UNIVERSAL)
+        if not struct: return
+        self.name = f'VERTEX ({self.name})'
+        self.hasRefs = False
+        self.fields = [] # type: List[m3FieldInfo]
+        self.root_fields = [0]
+        self.type = m3Type.VERTEX
+        self.simple = False
+        field = m3FieldInfo(self, 'Vertex', '', '*** Self ***', 0, self.type)
+        field.notSelfField = False
+        self.fields.append( field )
+        self.item_size = self.putSubStructureFields(structFile, struct, 0, '', 0, flags=vflags)
 
     def notifyParent(self, parent, child: int):
         if parent in range(1, len(self.fields)):
@@ -498,6 +524,7 @@ class m3StructHandler( xml.sax.ContentHandler ):
             convertFieldToInt(self.field,Attr.SINCE_VER)
             convertFieldToInt(self.field,Attr.TILL_VER)
             convertFieldToInt(self.field,Attr.SIZE)
+            convertFieldToInt(self.field,Attr.MASK)
             if not Attr.TYPE in self.field: self.field[Attr.TYPE] = ''
         elif tag==Tag.BIT:
             convertFieldToInt(self.attr,Attr.MASK)
@@ -540,6 +567,12 @@ if __name__ == '__main__':
     parser.parse(sfile_name)
 
     out_file = open('m3.py', 'w')
+    out_file.write('''
+### ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ###
+## This file was generated from structures.xml by m3struct.py          ##
+## Any changes to this file will be lost when m3struct.py is run again ##
+### ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ###
+''')
 
     def parseSubField(struct, prefix_k, prefix_v, typ):
         for f in sfile.structByName[typ][IDX_FIELDS]:

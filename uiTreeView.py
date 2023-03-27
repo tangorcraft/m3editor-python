@@ -161,7 +161,8 @@ class ShadowTree():
             shadow = self.newTagShadow(parent, tag, parent_field)
         # do not display children of simple tags in the tree
         # also don't process thags with index less than last to prevent possible ref loops
-        if not tag or tag.info.isSingleField() or tag.idx < self.lastTagIdx: return
+        # and don't put vertices as children in the tree
+        if not tag or tag.info.isSingleField() or tag.idx < self.lastTagIdx or tag.info.type == m3Type.VERTEX: return
         self.lastTagIdx = tag.idx
         if tag.count > SHADOW_GRP_COUNT:
             for start in range(0,tag.count,SHADOW_GRP_COUNT):

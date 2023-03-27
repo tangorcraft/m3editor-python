@@ -7,6 +7,7 @@ Program to directly edit M3 models. This is a rewrite of [M3 Editor](https://git
 ## Requirements
 * Python 3.8+ ([Get Python](https://www.python.org/downloads/))
 * PyQt5 (`pip install pyqt5`)
+* Run `m3struct.py` to generate `m3.py` file
 * Run `m3editor.pyw`
 
 # License (GPL 3.0 or later)

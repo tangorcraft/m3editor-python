@@ -17,6 +17,7 @@ from __future__ import annotations
 from typing import List, Tuple
 from struct import pack, unpack_from, calcsize
 from m3struct import m3FieldInfo, m3StructFile, m3StructInfo, m3Type, TAG_HEADER_33, TAG_HEADER_34, TAG_CHAR, BINARY_DATA_ITEM_BYTES_COUNT
+import m3
 
 INDEX_REF_SIZE = calcsize('<IIII') # tag, dataOffset, dataCount, version
 # index item fields, first 3 also match header fields
@@ -46,6 +47,9 @@ class m3Tag():
         self.idx = index
         self.tag = tag
         self.count = count
+        # save original count, because vertices tag has U8__ type and is counted by bytes
+        # the count property may change when parsing vflags and making vertex structure
+        self.type_count = count
         self.ver = ver
         self.info = m3StructInfo(tag, ver, file.structs)
         self.refFrom = [] # type: List[RefFromTuple]
@@ -104,6 +108,13 @@ class m3Tag():
             return f'0x{field.bitMask:0{field.size*2}x}'
         #if field.type == m3Type.BINARY:
         return self.getBinaryAsStr(offset, field.size)
+
+    def getFieldAsUInt(self, item_idx, field: m3FieldInfo) -> int:
+        if not field in self.info.fields:
+            raise m3FileError(FIELD_NOT_PART_OF_TAG)
+        if field.size in SIZE_TO_FORMAT:
+            offset = self.info.item_size * item_idx + field.offset
+            return unpack_from(SIZE_TO_FORMAT[field.size], self.data, offset)[0]
 
     def getBinaryAsStr(self, offset, size):
         end_offset = offset + min(size, BINARY_DATA_ITEM_BYTES_COUNT)
@@ -185,6 +196,7 @@ class m3File():
                     endOffset = items[i+1][IDX_OFFSET]
                 self.tags.append(m3Tag(self, self.data[offset:endOffset], i, items[i][IDX_TAG], items[i][IDX_COUNT], items[i][IDX_VER]))
             self.modl = self.tags[h[IDX_REF_MODL_INDEX]]
+            self.vflags = self.modl.getFieldAsUInt(0, self.modl.info.getFieldByName(m3.MODL.vFlags))
             self.rebildRefFrom()
         else:
             raise m3FileError('M3 file header not found in file: '+fileName)
@@ -196,7 +208,11 @@ class m3File():
             for idx in range(0, tag.count):
                 for f in tag.info.fields:
                     if f.notSelfField and f.isRef() and tag.refIsValid(idx, f):
-                        tag.getReff(idx, f).addRefFrom(tag.idx, idx, f)
+                        ref_tag = tag.getReff(idx, f)
+                        ref_tag.addRefFrom(tag.idx, idx, f)
+                        if f.refToVertices and tag == self.modl:
+                            ref_tag.info.forceVertices(self.structs, self.vflags)
+                            ref_tag.count = ref_tag.type_count // ref_tag.info.item_size
         self.orphans.clear()
         for tag in self.tags:
             if len(tag.refFrom)==0 and tag != self.modl and tag.idx != 0: # exclude MODL and header tags
