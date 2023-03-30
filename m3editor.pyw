@@ -19,8 +19,9 @@ from PyQt5.QtCore import *
 from Ui_editorWindow import Ui_m3ew
 from configparser import ConfigParser
 from m3file import m3File
-from m3struct import m3StructFile
+from m3struct import m3StructFile, m3FieldInfo
 from uiTreeView import TagTreeModel, fieldsTableModel, ShadowItem
+from editors.simpleFieldEdit import SimpleFieldEdit
 import sys, os, requests
 
 class mainWin(QtWidgets.QMainWindow):
@@ -43,6 +44,8 @@ class mainWin(QtWidgets.QMainWindow):
         self.ui.tagsTree.clicked.connect(self.tagTreeClick)
         self.resetItemNaviText('##')
 
+        self.simpleEditor = SimpleFieldEdit(self)
+
         self.fieldsModel = fieldsTableModel()
         self.fieldsModel.modelReset.connect(self.fieldsModelReset)
         self.fieldsModel.dataChanged.connect(lambda a,b: self.fieldsDataChanged())
@@ -55,6 +58,7 @@ class mainWin(QtWidgets.QMainWindow):
         #self.ui.fieldsTable.setModel(self.fieldsModel)
 
         self.ui.fieldsTable.clicked.connect(lambda x: self.ui.fieldsTable.expand(x))
+        self.ui.fieldsTable.doubleClicked.connect(self.fieldDoubleClick)
         self.ui.fieldsTable.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
         self.ui.fieldsTable.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
         self.ui.fieldsTable.header().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
@@ -128,6 +132,20 @@ class mainWin(QtWidgets.QMainWindow):
 
     ## EVENTS ##
 
+    def fieldDoubleClick(self, index: QModelIndex):
+        if index.isValid() and self.fieldsModel.tag:
+            f = index.data(fieldsTableModel.FieldRole) # type: m3FieldInfo
+            if self.fieldsModel.binaryView:
+                pass
+            elif self.fieldsModel.tag.info.simple:
+                item = self.fieldsModel.item_offset + index.row()
+                self.simpleEditor.editValue(self.fieldsModel.tag, item, f)
+            else:
+                if f.simple():
+                    self.simpleEditor.editValue(self.fieldsModel.tag, self.fieldsModel.tag_item, f)
+            pass
+
+
     def tagTreeClick(self, item: QModelIndex):
         if item.isValid():
             shadow = item.data(Qt.UserRole) # type: ShadowItem
@@ -143,6 +161,7 @@ class mainWin(QtWidgets.QMainWindow):
             self.m3 = m3File(fname, self.struct)
             self.tagsModel.changeM3(self.m3)
             self.treeTagSelected(self.m3.modl)
+            self.setWindowTitle(f'M3 Editor - {fname}')
 
     def closeEvent(self, ev: QtGui.QCloseEvent) -> None:
         self.saveIni()

@@ -15,8 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 from typing import List, Tuple
-from struct import pack, unpack_from, calcsize
-from m3struct import m3FieldInfo, m3StructFile, m3StructInfo, m3Type, TAG_HEADER_33, TAG_HEADER_34, TAG_CHAR, BINARY_DATA_ITEM_BYTES_COUNT
+from struct import pack, pack_into, unpack_from, calcsize
+from m3struct import m3FieldInfo, m3StructFile, m3StructInfo, m3Type, TAG_HEADER_33, TAG_HEADER_34, TAG_HEADER_VER, TAG_CHAR, BINARY_DATA_ITEM_BYTES_COUNT
 import m3
 
 INDEX_REF_SIZE = calcsize('<IIII') # tag, dataOffset, dataCount, version
@@ -41,7 +41,7 @@ class m3FileError(Exception):
     pass
 
 class m3Tag():
-    def __init__(self, file: m3File, data: bytes, index: int, tag: int, count: int, ver: int):
+    def __init__(self, file: m3File, data: bytearray, index: int, tag: int, count: int, ver: int):
         self.file = file
         self.data = data
         self.idx = index
@@ -120,6 +120,20 @@ class m3Tag():
             offset = self.info.item_size * item_idx + field.offset
             return unpack_from(SIZE_TO_FORMAT[field.size], self.data, offset)[0]
 
+    def getFieldValue(self, item_idx, field: m3FieldInfo):
+        if not field in self.info.fields:
+            raise m3FileError(FIELD_NOT_PART_OF_TAG)
+        fmt = m3Type.toFormat(field.type)
+        if fmt:
+            offset = self.info.item_size * item_idx + field.offset
+            return unpack_from(fmt, self.data, offset)[0]
+
+    def getFieldUnpacked(self, item_idx, field: m3FieldInfo, unpack_format):
+        if not field in self.info.fields:
+            raise m3FileError(FIELD_NOT_PART_OF_TAG)
+        offset = self.info.item_size * item_idx + field.offset
+        return unpack_from(unpack_format, self.data, offset)
+
     def getBinaryAsStr(self, offset, size):
         end_offset = offset + min(size, BINARY_DATA_ITEM_BYTES_COUNT)
         data_list = [f'{x:02x}' for x in self.data[offset:end_offset]]
@@ -178,12 +192,16 @@ class m3Tag():
 class m3File():
     def __init__(self, fileName, structFile: m3StructFile):
         self.structs = structFile
+        with open(fileName,'rb') as file:
+            self.data = bytearray(file.read())
+            file.close()
+        if not self.reloadFromData():
+            raise m3FileError('M3 file header not found in file: '+fileName)
+
+    def reloadFromData(self) -> bool:
         self.tags = [] # type: List[m3Tag]
         self.orphans = []
         self.modl = None # type: m3Tag | None
-        with open(fileName,'rb') as file:
-            self.data = file.read()
-            file.close()
         # reading header
         h = unpack_from('<IIIIII',self.data) # header tag, tag index offset, tag index item count, MODL ref (count, index, flags)
         if h[IDX_TAG]==TAG_HEADER_33 or h[IDX_TAG]==TAG_HEADER_34:
@@ -202,8 +220,9 @@ class m3File():
             self.modl = self.tags[h[IDX_REF_MODL_INDEX]]
             self.vflags = self.modl.getFieldAsUInt(0, self.modl.info.getFieldByName(m3.MODL.vFlags))
             self.rebildRefFrom()
+            return True
         else:
-            raise m3FileError('M3 file header not found in file: '+fileName)
+            return False
     
     def rebildRefFrom(self):
         for tag in self.tags:
@@ -221,6 +240,28 @@ class m3File():
         for tag in self.tags:
             if len(tag.refFrom)==0 and tag != self.modl and tag.idx != 0: # exclude MODL and header tags
                 self.orphans.append(tag.idx)
+
+    def repackIntoData(self):
+        idx_size =  calcsize('IIII') # tag, dataOffset, dataCount, version
+        index = bytearray(idx_size * self.tag_count)
+        pack_into('<IIII', index, 0, TAG_HEADER_34, 0, 1, TAG_HEADER_VER) # tag, dataOffset, dataCount, version
+
+        offset = calcsize('IIIIII') # file header == header tag at idx = 0
+        self.data = bytearray(offset) # file header is empty now, it will be filled last
+
+        for idx in range(1, self.tag_count): # skip tag at idx = 0 (header)
+            t = self.tags[idx]
+            pack_into('<IIII', index, idx_size * idx,
+                t.tag, offset, t.type_count, t.ver
+            ) # tag, dataOffset, dataCount, version
+            offset += len(t.data)
+            self.data += t.data
+        # put index at the end of data
+        self.data += index
+        # last: fill header info
+        pack_into('<IIIIII', self.data, 0,
+            TAG_HEADER_34, offset, self.tag_count, 1, self.modl.idx, 0
+        ) # header tag, tag index offset, tag index item count, MODL ref (count, index, flags)
 
 if __name__ == '__main__':
     #test = 'cyclone.m3'

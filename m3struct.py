@@ -47,6 +47,7 @@ def checkMask(value: int, mask: int) -> bool:
 
 TAG_HEADER_33 = m3TagFromName('MD33')
 TAG_HEADER_34 = m3TagFromName('MD34')
+TAG_HEADER_VER = 11
 TAG_CHAR = m3TagFromName('CHAR')
 TAG_LAYR = m3TagFromName('LAYR')
 TAG_SEQS = m3TagFromName('SEQS')
@@ -183,7 +184,20 @@ class m3Type():
         FLOAT: '<I',
     }
 
+    TYPE_TO_SIGN_FORMAT = {
+        UINT8: '<b',
+        FIXED8: '<b',
+        FIXED16: '<b',
+        UINT16: '<h',
+        UINT32: '<i',
+        INT8: '<b',
+        INT16: '<h',
+        INT32: '<i',
+        FLOAT: '<i',
+    }
+
     SIMPLE = (UINT8, UINT16, UINT32, INT8, INT16, INT32, FLOAT, FIXED8, FIXED16)
+    REAL = (FLOAT, FIXED8, FIXED16)
     REFS = (REF, REF_SMALL)
 
     @classmethod
@@ -218,6 +232,11 @@ class m3Type():
     def toHexFormat(cls, type) -> int:
         if type in cls.TYPE_TO_HEX_FORMAT:
             return cls.TYPE_TO_HEX_FORMAT[type]
+
+    @classmethod
+    def toSignFormat(cls, type) -> int:
+        if type in cls.TYPE_TO_SIGN_FORMAT:
+            return cls.TYPE_TO_SIGN_FORMAT[type]
 
 class m3FieldInfo():
     def __init__(self, owner: m3StructInfo, type_name, prefix, name, offset, Type = None, size = 0, bitMask = 0) -> None:
@@ -281,6 +300,9 @@ class m3FieldInfo():
     def getIndex(self) -> int:
         return self.owner.fields.index(self)
 
+    def simple(self) -> bool:
+        return True if self.type in m3Type.SIMPLE else False
+
 class m3StructInfo():
     def __init__(self, tag: int, ver: int, structFile: m3StructFile):
         struct = structFile.ByTag(tag)
@@ -303,7 +325,7 @@ class m3StructInfo():
             self.simple = struct[IDX_SIMPLE]
             if self.simple:
                 self.item_size = m3Type.toSize(self.type)
-                self.fields.append( m3FieldInfo(self, struct[IDX_FIELDS][0][Attr.TYPE], '', 'value', 0, self.type) )
+                self.fields.append( m3FieldInfo(self, struct[IDX_FIELDS][0][Attr.TYPE], '', 'value', 0, self.type, self.item_size) )
             else:
                 field = m3FieldInfo(self, self.name, '', '*** Self ***', 0, self.type)
                 field.notSelfField = False
