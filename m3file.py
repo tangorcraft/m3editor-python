@@ -17,6 +17,7 @@ from __future__ import annotations
 from typing import List, Tuple
 from struct import pack, pack_into, unpack_from, calcsize
 from m3struct import m3FieldInfo, m3StructFile, m3StructInfo, m3Type, TAG_HEADER_33, TAG_HEADER_34, TAG_HEADER_VER, TAG_CHAR, BINARY_DATA_ITEM_BYTES_COUNT
+from common import ceildiv, getTagStepNeededBytes
 import m3
 
 INDEX_REF_SIZE = calcsize('<IIII') # tag, dataOffset, dataCount, version
@@ -69,6 +70,17 @@ class m3Tag():
             return self.data[:self.count-1].decode()
         else:
             return ''
+
+    def isStr(self) -> bool:
+        return True if self.info.type == m3Type.CHAR else False
+
+    def setStr(self, value: str):
+        if self.info.type == m3Type.CHAR:
+            self.data = bytearray(value, 'utf-8') + b'\x00'
+            self.count = len(self.data)
+            self.type_count = len(self.data)
+            need = getTagStepNeededBytes(self.count)
+            if need: self.data += b'\xaa'*need
 
     def getFieldInfoStr(self, field: m3FieldInfo):
         if not field in self.info.fields:
@@ -247,7 +259,9 @@ class m3File():
         pack_into('<IIII', index, 0, TAG_HEADER_34, 0, 1, TAG_HEADER_VER) # tag, dataOffset, dataCount, version
 
         offset = calcsize('IIIIII') # file header == header tag at idx = 0
-        self.data = bytearray(offset) # file header is empty now, it will be filled last
+        extra = getTagStepNeededBytes(offset)
+        self.data = bytearray(offset) + b'\xaa'*extra # file header is empty now, it will be filled last
+        offset += extra
 
         for idx in range(1, self.tag_count): # skip tag at idx = 0 (header)
             t = self.tags[idx]

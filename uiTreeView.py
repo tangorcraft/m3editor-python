@@ -17,18 +17,12 @@ from typing import List, Callable
 from PyQt5.QtCore import *
 from m3file import m3File, m3Tag
 from m3struct import m3StructFile, m3Type, m3FieldInfo, BINARY_DATA_ITEM_BYTES_COUNT
+from common import ceildiv, clampi
 
 SHADOW_TAG, SHADOW_IT, SHADOW_GRP, SHADOW_DUP = range(4)
 SHADOW_GRP_COUNT = 20
 
 DEFAULT_SIMPLE_FIELDS_DISPLAY_COUNT = 50
-
-def ceildiv(a: int, b: int) -> int:
-    '''Ceil division, same as ceil(a/b)'''
-    return -(a//-b)
-
-def clampi(val: int, min: int, max: int) -> int:
-    return min if val < min else max if val > max else val
 
 class ShadowItem():
     def __init__(self, notifyParent: Callable[[int, int], int], index: int, type: int, parent: int, text: str, tag: m3Tag = None, tag_item = -1):

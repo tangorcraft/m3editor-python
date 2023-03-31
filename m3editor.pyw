@@ -16,6 +16,7 @@
 from typing import List, Callable
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import *
+from PyQt5.QtWidgets import QMessageBox as mb, QFileDialog as fd
 from Ui_editorWindow import Ui_m3ew
 from configparser import ConfigParser
 from m3file import m3File
@@ -81,6 +82,9 @@ class mainWin(QtWidgets.QMainWindow):
         self.ui.edtItemFilter.textEdited.connect(self.fieldsFilterModel.setFilterFixedString)
 
         self.ui.actionOpen.triggered.connect(self.openM3)
+        self.ui.actionReopen.triggered.connect(self.reopenM3)
+        self.ui.actionSave.triggered.connect(self.saveM3)
+        self.ui.actionSave_as.triggered.connect(self.saveM3as)
 
     def setIniOption(self, sect, opt, val, saveINI = False):
         if not sect in self.cfg:
@@ -116,10 +120,10 @@ class mainWin(QtWidgets.QMainWindow):
                     return
                 else:
                     self.resetItemNaviText()
-                    QtWidgets.QMessageBox.warning(self, 'Item not found', f'Item with index "{val}" is not found')
+                    mb.warning(self, 'Item not found', f'Item with index "{val}" is not found')
             except ValueError:
                 self.resetItemNaviText()
-                QtWidgets.QMessageBox.critical(self, 'Ivalid input', f'"{text}" is not a valid integer value')
+                mb.critical(self, 'Ivalid input', f'"{text}" is not a valid integer value')
 
     def treeTagSelected(self, tag, item = -1):
         self.fieldsModel.setM3Tag(tag, item)
@@ -133,18 +137,22 @@ class mainWin(QtWidgets.QMainWindow):
     ## EVENTS ##
 
     def fieldDoubleClick(self, index: QModelIndex):
-        if index.isValid() and self.fieldsModel.tag:
+        tag = self.fieldsModel.tag
+        if index.isValid() and tag:
             f = index.data(fieldsTableModel.FieldRole) # type: m3FieldInfo
             if self.fieldsModel.binaryView:
                 pass
-            elif self.fieldsModel.tag.info.simple:
+            elif tag.info.simple:
                 item = self.fieldsModel.item_offset + index.row()
-                self.simpleEditor.editValue(self.fieldsModel.tag, item, f)
+                self.simpleEditor.editValue(tag, item, f)
+            elif tag.isStr():
+                val = tag.getStr()
+                val, ok = QtWidgets.QInputDialog.getText(self, f'Edit CHAR#{tag.idx}', 'Input new CHAR value', text=val)
+                if ok: tag.setStr(val)
             else:
                 if f.simple():
                     self.simpleEditor.editValue(self.fieldsModel.tag, self.fieldsModel.tag_item, f)
             pass
-
 
     def tagTreeClick(self, item: QModelIndex):
         if item.isValid():
@@ -155,13 +163,44 @@ class mainWin(QtWidgets.QMainWindow):
                     self.ui.fieldsTable.expandAll()
 
     def openM3(self):
-        fname, filter = QtWidgets.QFileDialog.getOpenFileName(self, 'Open m3 model', self.lastFile, "M3 Model (*.m3 *.m3a)")
+        fname, filter = fd.getOpenFileName(self, 'Open m3 model', self.lastFile, "M3 Model (*.m3 *.m3a)")
         if os.path.exists(fname):
             self.lastFile =  fname
             self.m3 = m3File(fname, self.struct)
             self.tagsModel.changeM3(self.m3)
             self.treeTagSelected(self.m3.modl)
             self.setWindowTitle(f'M3 Editor - {fname}')
+            self.ui.actionReopen.setEnabled(True)
+            self.ui.actionSave.setEnabled(True)
+            self.ui.actionSave_as.setEnabled(True)
+            self.confirmSave = True
+
+    def reopenM3(self):
+        self.m3.reloadFromData()
+
+    def saveM3(self):
+        if self.confirmSave and os.path.exists(self.lastFile):
+            btns = mb.StandardButton.Yes | mb.StandardButton.No | mb.StandardButton.Cancel
+            ret = mb.question(self, 'Save file', f'Replace file "{self.lastFile}"?', btns, mb.StandardButton.Yes)
+            if ret == mb.StandardButton.Cancel:
+                return
+            if ret == mb.StandardButton.No:
+                self.saveM3as()
+                return
+        self.m3.repackIntoData()
+        with open(self.lastFile, 'wb') as file:
+            file.write(self.m3.data)
+            file.close()
+
+    def saveM3as(self):
+        fname, filter = fd.getSaveFileName(self, 'Save m3 model', self.lastFile, "M3 Model (*.m3);;M3 Model Animations (*.m3a)")
+        if os.path.exists(fname):
+            btns = mb.StandardButton.Yes | mb.StandardButton.No
+            if mb.question(self, 'Save file', f'Replace file "{fname}"?', btns, mb.StandardButton.Yes) == mb.StandardButton.No:
+                return
+        self.confirmSave = False
+        self.lastFile = fname
+        self.saveM3()
 
     def closeEvent(self, ev: QtGui.QCloseEvent) -> None:
         self.saveIni()
