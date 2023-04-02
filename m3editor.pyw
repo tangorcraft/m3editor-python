@@ -169,6 +169,7 @@ class mainWin(QtWidgets.QMainWindow):
             self.m3 = m3File(fname, self.struct)
             self.tagsModel.changeM3(self.m3)
             self.treeTagSelected(self.m3.modl)
+            self.ui.gl3dView.setM3(self.m3)
             self.setWindowTitle(f'M3 Editor - {fname}')
             self.ui.actionReopen.setEnabled(True)
             self.ui.actionSave.setEnabled(True)
@@ -200,6 +201,7 @@ class mainWin(QtWidgets.QMainWindow):
                 return
         self.confirmSave = False
         self.lastFile = fname
+        self.setWindowTitle(f'M3 Editor - {fname}')
         self.saveM3()
 
     def closeEvent(self, ev: QtGui.QCloseEvent) -> None:

@@ -16,7 +16,8 @@
 from __future__ import annotations
 from typing import List, Tuple
 from struct import pack, pack_into, unpack_from, calcsize
-from m3struct import m3FieldInfo, m3StructFile, m3StructInfo, m3Type, TAG_HEADER_33, TAG_HEADER_34, TAG_HEADER_VER, TAG_CHAR, BINARY_DATA_ITEM_BYTES_COUNT
+from m3struct import m3FieldInfo, m3StructFile, m3StructInfo, m3Type,\
+    TAG_HEADER_33, TAG_HEADER_34, TAG_HEADER_VER, TAG_CHAR, BINARY_DATA_ITEM_BYTES_COUNT
 from common import ceildiv, getTagStepNeededBytes
 import m3
 
@@ -214,6 +215,7 @@ class m3File():
         self.tags = [] # type: List[m3Tag]
         self.orphans = []
         self.modl = None # type: m3Tag | None
+        self.vert = None # type: m3Tag | None
         # reading header
         h = unpack_from('<IIIIII',self.data) # header tag, tag index offset, tag index item count, MODL ref (count, index, flags)
         if h[IDX_TAG]==TAG_HEADER_33 or h[IDX_TAG]==TAG_HEADER_34:
@@ -248,6 +250,7 @@ class m3File():
                         if f.refToVertices and tag == self.modl:
                             ref_tag.info.forceVertices(self.structs, self.vflags)
                             ref_tag.count = ref_tag.type_count // ref_tag.info.item_size
+                            self.vert = ref_tag
         self.orphans.clear()
         for tag in self.tags:
             if len(tag.refFrom)==0 and tag != self.modl and tag.idx != 0: # exclude MODL and header tags

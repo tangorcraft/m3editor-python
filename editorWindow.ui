@@ -301,6 +301,16 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="tab3dView">
+       <attribute name="title">
+        <string>3D View</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="m3glWidget" name="gl3dView"/>
+        </item>
+       </layout>
+      </widget>
      </widget>
     </item>
    </layout>
@@ -426,6 +436,13 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>m3glWidget</class>
+   <extends>QOpenGLWidget</extends>
+   <header>ui3dView</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>

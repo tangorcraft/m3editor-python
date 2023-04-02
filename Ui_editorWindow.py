@@ -148,6 +148,14 @@ class Ui_m3ew(object):
         self.fieldsTable.setObjectName("fieldsTable")
         self.verticalLayout_3.addWidget(self.splitter)
         self.tabWidget.addTab(self.tabTreeView, "")
+        self.tab3dView = QtWidgets.QWidget()
+        self.tab3dView.setObjectName("tab3dView")
+        self.horizontalLayout = QtWidgets.QHBoxLayout(self.tab3dView)
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.gl3dView = m3glWidget(self.tab3dView)
+        self.gl3dView.setObjectName("gl3dView")
+        self.horizontalLayout.addWidget(self.gl3dView)
+        self.tabWidget.addTab(self.tab3dView, "")
         self.verticalLayout.addWidget(self.tabWidget)
         m3ew.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(m3ew)
@@ -208,7 +216,7 @@ class Ui_m3ew(object):
         self.menubar.addAction(self.menuView.menuAction())
 
         self.retranslateUi(m3ew)
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(2)
         self.actionExit.triggered.connect(m3ew.close) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(m3ew)
 
@@ -223,6 +231,7 @@ class Ui_m3ew(object):
         self.edtItemFilter.setPlaceholderText(_translate("m3ew", "search fields"))
         self.btnShowBinary.setText(_translate("m3ew", "Show as Binary"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabTreeView), _translate("m3ew", "Tree View"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab3dView), _translate("m3ew", "3D View"))
         self.menuFile.setTitle(_translate("m3ew", "File"))
         self.menuView.setTitle(_translate("m3ew", "View"))
         self.menuSimple_and_Binary_Display_Count.setTitle(_translate("m3ew", "Simple and Binary Display Count"))
@@ -237,3 +246,4 @@ class Ui_m3ew(object):
         self.actionSave.setText(_translate("m3ew", "Save"))
         self.actionSave_as.setText(_translate("m3ew", "Save as ..."))
         self.actionExit.setText(_translate("m3ew", "Exit"))
+from ui3dView import m3glWidget
