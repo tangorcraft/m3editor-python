@@ -418,6 +418,12 @@ class m3StructInfo():
             if f.name == name:
                 return f
 
+    def getFieldOffsetByName(self, name) -> int:
+        for f in self.fields:
+            if f.name == name:
+                return f.offset
+        return 0
+
     def getFieldParent(self, index) -> m3FieldInfo:
         if index in range(0, len(self.fields)):
             parent = self.fields[index].tree_parent

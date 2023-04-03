@@ -147,6 +147,12 @@ class m3Tag():
         offset = self.info.item_size * item_idx + field.offset
         return unpack_from(unpack_format, self.data, offset)
 
+    def getFieldUnpackedByName(self, item_idx, field_name: str, unpack_format):
+        field = self.info.getFieldByName(field_name)
+        if field:
+            offset = self.info.item_size * item_idx + field.offset
+            return unpack_from(unpack_format, self.data, offset)
+
     def getBinaryAsStr(self, offset, size):
         end_offset = offset + min(size, BINARY_DATA_ITEM_BYTES_COUNT)
         data_list = [f'{x:02x}' for x in self.data[offset:end_offset]]
@@ -285,10 +291,10 @@ if __name__ == '__main__':
     test = 'BeaconAttackPing_AC.m3'
     strFile = m3StructFile()
     strFile.loadFromFile('structures.xml')
-    m3 = m3File(test, strFile)
-    print(m3.tag_count)
+    m3f = m3File(test, strFile)
+    print(m3f.tag_count)
     dds = []
-    for t in m3.tags:
+    for t in m3f.tags:
         if t.tag == TAG_CHAR:
             s = t.data[:t.count-1].decode()
             if s[-4:]=='.dds' and not s in dds: dds.append(s)
@@ -302,4 +308,4 @@ if __name__ == '__main__':
                 if f.type == m3Type.REF and first.refIsValid(i,f):
                     printTagsTree(first.getReff(i,f),ident+1,f.name)
 
-    printTagsTree(m3.modl,0,'model')
+    printTagsTree(m3f.modl,0,'model')

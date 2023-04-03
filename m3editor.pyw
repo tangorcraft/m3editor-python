@@ -86,6 +86,10 @@ class mainWin(QtWidgets.QMainWindow):
         self.ui.actionSave.triggered.connect(self.saveM3)
         self.ui.actionSave_as.triggered.connect(self.saveM3as)
 
+        self.glTimer = QTimer(self)
+        self.glTimer.timeout.connect(self.ui.gl3dView.update)
+        self.glTimer.start(1000)
+
     def setIniOption(self, sect, opt, val, saveINI = False):
         if not sect in self.cfg:
             self.cfg[sect] = {}
@@ -209,6 +213,12 @@ class mainWin(QtWidgets.QMainWindow):
         ev.accept()
 
 if __name__ == '__main__':
+    fmt = QtGui.QSurfaceFormat()
+    fmt.setDepthBufferSize(24)
+    fmt.setStencilBufferSize(8)
+    fmt.setVersion(3,3)
+    fmt.setProfile(QtGui.QSurfaceFormat.OpenGLContextProfile.CoreProfile)
+    QtGui.QSurfaceFormat.setDefaultFormat(fmt)
     app = QtWidgets.QApplication([])
     appWin = mainWin()
     #app.installEventFilter(appWin)

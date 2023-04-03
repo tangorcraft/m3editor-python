@@ -217,13 +217,13 @@ class glmMatrix44():
         '''Return unit x vector of transformation matrix as (x, y, z) tuple'''
         return (self.mat[M44I0_0], self.mat[M44I0_1], self.mat[M44I0_2])
 
-    def forward(self):
+    def up(self):
         '''Return unit y vector of transformation matrix as (x, y, z) tuple'''
         return (self.mat[M44I1_0], self.mat[M44I1_1], self.mat[M44I1_2])
 
-    def up(self):
-        '''Return unit z vector of transformation matrix as (x, y, z) tuple'''
-        return (self.mat[M44I2_0], self.mat[M44I2_1], self.mat[M44I2_2])
+    def forward(self):
+        '''Return unit z vector of transformation matrix as (-x, -y, -z) tuple'''
+        return (-self.mat[M44I2_0], -self.mat[M44I2_1], -self.mat[M44I2_2])
 
     def origin(self):
         '''Return origin point of transformation matrix as (x, y, z) tuple'''
@@ -232,6 +232,26 @@ class glmMatrix44():
         else:
             factor = 1.0 / self.mat[M44I3_3]
         return (self.mat[M44I3_0]*factor, self.mat[M44I3_1]*factor, self.mat[M44I3_2]*factor)
+
+    def side_data(self):
+        '''Return side() vector as binary data that contain 3 float32 values in little-endian byte order'''
+        return pack('<fff', self.mat[M44I0_0], self.mat[M44I0_1], self.mat[M44I0_2])
+
+    def up_data(self):
+        '''Return side() vector as binary data that contain 3 float32 values in little-endian byte order'''
+        return pack('<fff', self.mat[M44I1_0], self.mat[M44I1_1], self.mat[M44I1_2])
+
+    def forward_data(self):
+        '''Return side() vector as binary data that contain 3 float32 values in little-endian byte order'''
+        return pack('<fff', -self.mat[M44I2_0], -self.mat[M44I2_1], -self.mat[M44I2_2])
+
+    def origin_data(self):
+        '''Return origin() point as binary data that contain 3 float32 values in little-endian byte order'''
+        if self.mat[M44I3_3]==1.0:
+            factor = 1.0
+        else:
+            factor = 1.0 / self.mat[M44I3_3]
+        return pack('<fff', self.mat[M44I3_0]*factor, self.mat[M44I3_1]*factor, self.mat[M44I3_2]*factor)
 
     def mulMatrix44(self, matrix: matrix44_list):
         '''Multiply current matrix by given matrix'''
@@ -573,11 +593,18 @@ class glmMatrix44():
 
 if __name__ == '__main__':
     test = glmMatrix44()
-    test.translate(9,5,3)
-    test.rotateDeg(53,2,3,4)
+    test.identLookAt_ECU(
+            5,5,5,
+            0,0,0,
+            0,0,1
+        )
     mat = test.data()
     print(mat)
     print(test.mat, test.determinant())
+    print(test.up())
+    print(test.forward())
+    print(test.side())
+    print(test.origin())
     test2 = glmMatrix44(test.mat)
     test.invert()
     print(test.mat, test.determinant())
