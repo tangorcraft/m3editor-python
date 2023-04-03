@@ -260,6 +260,7 @@ class m3FieldInfo():
         self.size = size
         self.bitMask = bitMask
         self.notSelfField = True
+        self.hint = ''
 
     def noticeChild(self, child) -> int:
         idx = len(self.tree_children)
@@ -291,6 +292,16 @@ class m3FieldInfo():
             s += delim + f'Ref to {self.refTo}'
         return s
 
+    def getHint(self, full: bool = False) -> str:
+        if full:
+            if self.tree_parent:
+                parent = self.owner.getField(self.tree_parent)
+                if parent:
+                    return parent.getHint(full) + (f'\n{self.name}:\n{self.hint}' if self.hint else '')
+            else:
+                return f'{self.owner.name}:\n{self.owner.descr}' + (f'\n{self.name}:\n{self.hint}' if self.hint else '')
+        return self.hint
+
     def getDataOffset(self, item_idx) -> int:
         return self.owner.item_size * item_idx + self.offset
     
@@ -307,6 +318,7 @@ class m3StructInfo():
     def __init__(self, tag: int, ver: int, structFile: m3StructFile):
         struct = structFile.ByTag(tag)
         self.name = m3TagToStr(tag)
+        self.descr = struct[IDX_DESC] if struct and IDX_DESC in struct else ''
         self.hasRefs = False
         self.fields = [] # type: List[m3FieldInfo]
         self.root_fields = [0] # we will add at least one field
@@ -339,6 +351,8 @@ class m3StructInfo():
                 if Attr.TILL_VER in f and f[Attr.TILL_VER] < ver: continue
                 if flags and Attr.MASK in f and not checkMask(flags, f[Attr.MASK]): continue
                 field = m3FieldInfo( self, f[Attr.TYPE], prefix, f[Attr.NAME], offset )
+                if Attr.HINT in f:
+                    field.hint = f[Attr.HINT]
                 if Attr.DEFAULT in f:
                     field.default = f[Attr.DEFAULT]
                 if Attr.EXPECTED in f:
@@ -372,7 +386,9 @@ class m3StructInfo():
                     else:
                         n = f[Attr.TYPE]
                         v = 0
-                    offset = self.putSubStructureFields(structFile, structFile.ByName(n), offset, field.name+SUB_STRUCT_DELIM, v, idx)
+                    sub = structFile.ByName(n)
+                    field.hint = (f'{field.hint}\n' if field.hint else '') + f'{sub[IDX_NAME]}:\n{sub[IDX_DESC]}'
+                    offset = self.putSubStructureFields(structFile, sub, offset, field.name+SUB_STRUCT_DELIM, v, idx)
                 else:
                     if field.type == m3Type.BINARY and size > BINARY_DATA_ITEM_BYTES_COUNT:
                         self.putSubBinaryFields(field, idx, offset)
@@ -586,7 +602,7 @@ class m3StructHandler( xml.sax.ContentHandler ):
         s = content.strip()
         if s:
             if self.tag==Tag.DESC:
-                self.entry[IDX_DESC] = s
+                self.entry[IDX_DESC] += s+'\n'
             elif self.tag==Tag.HINT:
                 self.fieldAddHint(s)
 

@@ -166,7 +166,7 @@ class ShadowTree():
             self.processGroup(shadow,tag,0)
 
 class TagTreeModel(QAbstractItemModel):
-    TagTreeShadowRole = Qt.UserRole # type: 'Qt.ItemDataRole'
+    TagTreeShadowRole = Qt.ItemDataRole.UserRole # type: 'Qt.ItemDataRole'
 
     def __init__(self) -> None:
         self.shadows = ShadowTree()
@@ -214,10 +214,12 @@ class TagTreeModel(QAbstractItemModel):
         if not self.shadows: return QVariant()
         shadow = self.shadows.getShadow(index.internalId())
         if not shadow: return QVariant()
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             return shadow.text
-        if role == Qt.StatusTipRole:
+        if role == Qt.ItemDataRole.StatusTipRole:
             return shadow.text
+        if role == Qt.ItemDataRole.ToolTipRole and shadow.tag:
+            return shadow.tag.info.descr
         if role == TagTreeModel.TagTreeShadowRole:
             return shadow
         return QVariant()
@@ -234,9 +236,10 @@ class TagTreeModel(QAbstractItemModel):
         return False
 
 class fieldsTableModel(QAbstractItemModel):
-    FieldRole = Qt.UserRole # type: 'Qt.ItemDataRole'
-    SimpleFieldOffsetRole = Qt.UserRole + 1 # type: 'Qt.ItemDataRole'
-    BinaryViewOffsetRole = Qt.UserRole + 2 # type: 'Qt.ItemDataRole'
+    FieldRole = Qt.ItemDataRole.UserRole # type: 'Qt.ItemDataRole'
+    SimpleFieldOffsetRole = Qt.ItemDataRole.UserRole + 1 # type: 'Qt.ItemDataRole'
+    BinaryViewOffsetRole = Qt.ItemDataRole.UserRole + 2 # type: 'Qt.ItemDataRole'
+    FullFieldHintRole = Qt.ItemDataRole.UserRole + 3 # type: 'Qt.ItemDataRole'
 
     def __init__(self, tag: m3Tag = None) -> None:
         self.tag = tag
@@ -383,6 +386,8 @@ class fieldsTableModel(QAbstractItemModel):
             return None
         if role == fieldsTableModel.BinaryViewOffsetRole:
             return None
+        if role == fieldsTableModel.FullFieldHintRole:
+            return ''
         return QVariant()
 
     def data(self, index: QModelIndex, role: int):
@@ -396,7 +401,7 @@ class fieldsTableModel(QAbstractItemModel):
             else:
                 size = min(self.tag.info.item_size - offset, BINARY_DATA_ITEM_BYTES_COUNT)
                 offset += self.tag.info.item_size * self.tag_item
-            if role in (Qt.DisplayRole, Qt.StatusTipRole):
+            if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.StatusTipRole):
                 if col == 0:
                     return f'0x{offset:08x}'
                 elif col == 1:
@@ -410,7 +415,7 @@ class fieldsTableModel(QAbstractItemModel):
         elif self.tag.info.simple:
             f = self.tag.info.fields[0]
             item = self.item_offset + index.row()
-            if role in (Qt.DisplayRole, Qt.StatusTipRole):
+            if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.StatusTipRole):
                 if col == 0:
                     return f'{f.name} 0x{item*self.tag.info.item_size:08x}' if f.type == m3Type.BINARY else f'{f.name} {item:3d}'
                 elif col == 1:
@@ -423,21 +428,26 @@ class fieldsTableModel(QAbstractItemModel):
                 return item * self.tag.info.item_size
         elif index.internalId() in range(0, len(self.tag.info.fields)):
             f = self.tag.info.fields[index.internalId()]
-            if role in (Qt.DisplayRole, Qt.StatusTipRole):
+            if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.StatusTipRole):
                 if col == 0:
-                    return f.display_name if role == Qt.DisplayRole else f.name
+                    return f.display_name if role == Qt.ItemDataRole.DisplayRole else f.name
                 elif col == 1:
                     return f.type_name
                 elif col == 2:
                     return self.tag.getFieldInfoStr(f)
                 elif col == 3:
                     return self.tag.getFieldAsStr(self.tag_item, f)
-            elif role == Qt.CheckStateRole and f.type == m3Type.BIT and col == 3:
-                return Qt.Checked if self.tag.checkBitState(self.tag_item, f) else Qt.Unchecked
+            elif role == Qt.ItemDataRole.CheckStateRole and f.type == m3Type.BIT and col == 3:
+                return Qt.CheckState.Checked if self.tag.checkBitState(self.tag_item, f) else Qt.CheckState.Unchecked
+            elif role == Qt.ItemDataRole.ToolTipRole:
+                tip = f.getHint()
+                if tip: return tip
         else:
             f = None
         if role == fieldsTableModel.FieldRole and f:
             return f
+        if role == fieldsTableModel.FullFieldHintRole and f:
+            return f.getHint(True)
         return self.dataDefault(role)
 
     def hasChildren(self, parent: QModelIndex) -> bool:
@@ -448,7 +458,7 @@ class fieldsTableModel(QAbstractItemModel):
         return False
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
             if section==0:
                 return 'Field'
             elif section==1:

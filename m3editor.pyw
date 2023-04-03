@@ -60,6 +60,7 @@ class mainWin(QtWidgets.QMainWindow):
 
         self.ui.fieldsTable.clicked.connect(lambda x: self.ui.fieldsTable.expand(x))
         self.ui.fieldsTable.doubleClicked.connect(self.fieldDoubleClick)
+        self.ui.fieldsTable.selectionModel().currentChanged.connect(lambda a,b: self.ui.textFieldHint.setText(a.data(fieldsTableModel.FullFieldHintRole)))
         self.ui.fieldsTable.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
         self.ui.fieldsTable.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
         self.ui.fieldsTable.header().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
@@ -160,7 +161,7 @@ class mainWin(QtWidgets.QMainWindow):
 
     def tagTreeClick(self, item: QModelIndex):
         if item.isValid():
-            shadow = item.data(Qt.UserRole) # type: ShadowItem
+            shadow = item.data(TagTreeModel.TagTreeShadowRole) # type: ShadowItem
             if shadow.tag:
                 self.treeTagSelected(shadow.tag, shadow.tag_item)
                 if self.ui.actionFields_Auto_Expand_All.isChecked():
