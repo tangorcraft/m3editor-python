@@ -126,7 +126,7 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
         gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.buff_face)
         gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, self.face_mem, gl.GL_STATIC_DRAW)
         self.doneCurrent()
-        self.update()
+        self.resetCamera() # this will also call update()
 
     def _camStatUpdate(self):
         s = 'forw'
@@ -143,6 +143,15 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
             s += f' {x:f}'
         self.setStatusTip(s)
 
+    def resetCamera(self):
+        self.cam.setAll(5.0, 0.0, 45.0, 0.0, 0.0, 0.0)
+        self.update()
+
+    def mouseDoubleClickEvent(self, a0: QtGui.QMouseEvent) -> None:
+        self.resetCamera()
+        a0.accept()
+        return super().mouseDoubleClickEvent(a0)
+
     def mouseMoveEvent(self, a0: QtGui.QMouseEvent) -> None:
         if a0.buttons() & self.mouse_cap:
             x = a0.globalX()
@@ -150,13 +159,16 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
             dX = 0.0
             dY = 0.0
             if self.mouse_X != x:
-                dX = (self.mouse_X - x) * 0.5
+                dX = self.mouse_X - x
                 self.mouse_X = x
             if self.mouse_Y != y:
-                dY = (y - self.mouse_Y) * 0.5
+                dY = y - self.mouse_Y
                 self.mouse_Y = y
             if dX or dY:
-                self.cam.modifyAngles(dX, dY)
+                if self.mouse_cap == Qt.MouseButton.LeftButton:
+                    self.cam.modifyAngles(dX * 0.5, dY * 0.5)
+                elif self.mouse_cap == Qt.MouseButton.RightButton:
+                    self.cam.modifyCenterLocal(dX * 0.01, dY * 0.01)
                 self.update()
         return super().mouseMoveEvent(a0)
 

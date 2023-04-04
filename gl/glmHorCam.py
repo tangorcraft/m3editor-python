@@ -8,7 +8,7 @@ class glmHorizontalCamera(glmMatrix44):
         self.setAll(distance, h_angle, v_angle, center_x, center_y, center_z)
 
     def setAll(self, distance: float, h_angle: float, v_angle: float, center_x: float, center_y: float, center_z: float):
-        self.distance = distance
+        self.distance = clampf(distance, 1.0, 100.0)
         self.h_angle = h_angle
         self.v_angle = clampf(v_angle, -180.0, 180.0)
         self.center = (center_x, center_y, center_z)
@@ -52,6 +52,14 @@ class glmHorizontalCamera(glmMatrix44):
 
     def modifyCenter(self, delta_x: float, delta_y: float, delta_z: float):
         self.center = (self.center[0]+delta_x, self.center[1]+delta_y, self.center[2]+delta_z)
+        self._update_mat()
+
+    def modifyCenterLocal(self, delta_side: float, delta_z: float):
+        self.center = (
+            self.center[0]+self.side_v[0]*delta_side,
+            self.center[1]+self.side_v[1]*delta_side,
+            self.center[2]+delta_z
+        )
         self._update_mat()
 
     def data(self):
