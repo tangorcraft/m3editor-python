@@ -15,24 +15,27 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import *
+from struct import pack
 import OpenGL.GL as gl
 import OpenGL.GL.shaders as gls
 from m3file import m3File, m3Tag
 from m3struct import m3FieldInfo
 from gl.glMath import glmMatrix44
+from gl.glmHorCam import glmHorizontalCamera
 import m3
+
+def vec3_data(v1, v2, v3):
+    return pack('<fff', v1, v2, v3)
 
 class m3glWidget(QtWidgets.QOpenGLWidget):
     def __init__(self, parent) -> None:
-        self.cam = glmMatrix44()
+        self.cam = glmHorizontalCamera(5.0, 0.0, 45.0, 0.0, 0.0, 0.0)
         self.perspective = glmMatrix44()
-        self.cam.identLookAt_ECU(
-            5,5,5,
-            0,0,0,
-            0,0,1
-        )
         self.wireframe = False
         self.m3 = None
+        self.mouse_cap = Qt.MouseButton.NoButton
+        self.mouse_X = 0
+        self.mouse_Y = 0
         super().__init__(parent)
 
     def initializeGL(self) -> None:
@@ -48,9 +51,8 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
             gls.compileShader(vert, gl.GL_VERTEX_SHADER)
         )
         self.mvp = gl.glGetUniformLocation(self.prog, 'MVP')
-        self.eye_forward = gl.glGetUniformLocation(self.prog, 'cam_forward')
+        self.light_back_vec = gl.glGetUniformLocation(self.prog, 'LightRay_reverse')
         self.eye_pos = gl.glGetUniformLocation(self.prog, 'EyePos')
-        self.light_pos = gl.glGetUniformLocation(self.prog, 'LightPos')
         gl.glEnable(gl.GL_DEPTH_TEST)
         self.vao = gl.glGenVertexArrays(1)
         gl.glBindVertexArray(self.vao)
@@ -68,21 +70,16 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
         return super().resizeGL(w, h)
 
     def paintGL(self) -> None:
+        self._camStatUpdate()
         gl.glClear(gl.GL_DEPTH_BUFFER_BIT | gl.GL_COLOR_BUFFER_BIT)
         if not self.prog: return
         if not self.m3: return
         final = glmMatrix44(self.perspective.mat, self.cam.mat)
-        #final.lookAt_ECU(
-        #    5,5,5,
-        #    0,0,0,
-        #    0,0,1
-        #)
         gl.glUseProgram(self.prog)
         # set uniform data
         gl.glUniformMatrix4fv(self.mvp, 1, gl.GL_FALSE, final.data())
-        gl.glUniform3fv(self.eye_forward, 1, self.cam.forward_data())
-        gl.glUniform3f(self.eye_pos, 5.0, 5.0, 5.0)
-        gl.glUniform3f(self.light_pos, 6.0, 6.0, 6.0 )
+        gl.glUniform3fv(self.light_back_vec, 1, vec3_data(*self.cam.back_v()))
+        gl.glUniform3fv(self.eye_pos, 1, vec3_data(*self.cam.eye_pos))
         # set vertex data
         gl.glBindVertexArray(self.vao)
         gl.glEnableVertexAttribArray(0)
@@ -130,3 +127,55 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
         gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, self.face_mem, gl.GL_STATIC_DRAW)
         self.doneCurrent()
         self.update()
+
+    def _camStatUpdate(self):
+        s = 'forw'
+        for x in self.cam.forw_v:
+            s += f' {x:f}'
+        s += '; up'
+        for x in self.cam.up_v:
+            s += f' {x:f}'
+        s += '; side'
+        for x in self.cam.side_v:
+            s += f' {x:f}'
+        s += '; eye'
+        for x in self.cam.eye_pos:
+            s += f' {x:f}'
+        self.setStatusTip(s)
+
+    def mouseMoveEvent(self, a0: QtGui.QMouseEvent) -> None:
+        if a0.buttons() & self.mouse_cap:
+            x = a0.globalX()
+            y = a0.globalY()
+            dX = 0.0
+            dY = 0.0
+            if self.mouse_X != x:
+                dX = (self.mouse_X - x) * 0.5
+                self.mouse_X = x
+            if self.mouse_Y != y:
+                dY = (y - self.mouse_Y) * 0.5
+                self.mouse_Y = y
+            if dX or dY:
+                self.cam.modifyAngles(dX, dY)
+                self.update()
+        return super().mouseMoveEvent(a0)
+
+    def mousePressEvent(self, a0: QtGui.QMouseEvent) -> None:
+        self.mouse_cap = a0.button()
+        self.mouse_X = a0.globalX()
+        self.mouse_Y = a0.globalY()
+        a0.accept()
+        return super().mousePressEvent(a0)
+
+    def mouseReleaseEvent(self, a0: QtGui.QMouseEvent) -> None:
+        self.mouse_cap = Qt.MouseButton.NoButton
+        a0.accept()
+        return super().mouseReleaseEvent(a0)
+
+    def wheelEvent(self, a0: QtGui.QWheelEvent) -> None:
+        d = a0.angleDelta().y() * -0.005
+        if d:
+            self.cam.modifyDistance(d)
+            self.update()
+            a0.accept()
+        return super().wheelEvent(a0)

@@ -20,6 +20,9 @@ def ceildiv(a: int, b: int) -> int:
 def clampi(val: int, min: int, max: int) -> int:
     return min if val < min else max if val > max else val
 
+def clampf(val: float, min: float, max: float) -> float:
+    return min if val < min else max if val > max else val
+
 TAG_SIZE_STEP = 0x10
 def getTagStepNeededBytes(count):
     return max(1, ceildiv(count, TAG_SIZE_STEP))*TAG_SIZE_STEP - count

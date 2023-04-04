@@ -40,6 +40,8 @@ class mainWin(QtWidgets.QMainWindow):
         self.ui.setupUi(self)
         self.font().setStyleHint(QtGui.QFont.Monospace, QtGui.QFont.PreferDefault)
 
+        ### Tree View ###
+
         self.tagsModel = TagTreeModel()
         self.ui.tagsTree.setModel(self.tagsModel)
         self.ui.tagsTree.clicked.connect(self.tagTreeClick)
@@ -82,14 +84,18 @@ class mainWin(QtWidgets.QMainWindow):
         self.ui.edtItemNavi.editingFinished.connect(self.itemNaviEdited)
         self.ui.edtItemFilter.textEdited.connect(self.fieldsFilterModel.setFilterFixedString)
 
-        self.ui.actionOpen.triggered.connect(self.openM3)
-        self.ui.actionReopen.triggered.connect(self.reopenM3)
-        self.ui.actionSave.triggered.connect(self.saveM3)
-        self.ui.actionSave_as.triggered.connect(self.saveM3as)
+        ### 3d View ###
 
         self.glTimer = QTimer(self)
         self.glTimer.timeout.connect(self.ui.gl3dView.update)
         self.glTimer.start(1000)
+
+        ### Menu ###
+
+        self.ui.actionOpen.triggered.connect(self.openM3)
+        self.ui.actionReopen.triggered.connect(self.reopenM3)
+        self.ui.actionSave.triggered.connect(self.saveM3)
+        self.ui.actionSave_as.triggered.connect(self.saveM3as)
 
     def setIniOption(self, sect, opt, val, saveINI = False):
         if not sect in self.cfg:
