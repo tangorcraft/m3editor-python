@@ -7,11 +7,12 @@ in float Normal_sign;
 out vec3 color;
 
 uniform vec3 LightRay_reverse;
+uniform float LightPower;
+uniform float LightMinimal;
 
 void main(){
   vec3 baseColor = vec3(0.8, 0.4*Normal_sign, 0.1);
   vec3 specularColor = vec3(0.2, 0.2, 0.2);
-  float LightPower = 40.0f;
 
   vec3 n = normalize( Normal );
   vec3 l = normalize( LightRay_reverse );
@@ -25,7 +26,7 @@ void main(){
   float distance = length( EyeDirection );
 
   color =
-    baseColor * 0.3 +
+    baseColor * LightMinimal +
     baseColor * LightPower * cosTheta / ( distance * distance ) +
     specularColor * LightPower * pow(cosAlpha,3) / (distance*distance)
   ;

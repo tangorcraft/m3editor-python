@@ -89,6 +89,8 @@ class mainWin(QtWidgets.QMainWindow):
         self.glTimer = QTimer(self)
         self.glTimer.timeout.connect(self.ui.gl3dView.update)
         self.glTimer.start(1000)
+        self.ui.slideLightMin.valueChanged.connect(lambda x: self.ui.gl3dView.setLightMin(x / 100))
+        self.ui.slideLightPow.valueChanged.connect(lambda x: self.ui.gl3dView.setLightPow(x / 100))
 
         ### Menu ###
 

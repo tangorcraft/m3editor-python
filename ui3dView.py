@@ -36,6 +36,8 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
         self.mouse_cap = Qt.MouseButton.NoButton
         self.mouse_X = 0
         self.mouse_Y = 0
+        self.light_pow = 10.0
+        self.light_min = 0.3
         super().__init__(parent)
 
     def initializeGL(self) -> None:
@@ -50,9 +52,11 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
             gls.compileShader(frag, gl.GL_FRAGMENT_SHADER),
             gls.compileShader(vert, gl.GL_VERTEX_SHADER)
         )
-        self.mvp = gl.glGetUniformLocation(self.prog, 'MVP')
-        self.light_back_vec = gl.glGetUniformLocation(self.prog, 'LightRay_reverse')
-        self.eye_pos = gl.glGetUniformLocation(self.prog, 'EyePos')
+        self.gl_mvp = gl.glGetUniformLocation(self.prog, 'MVP')
+        self.gl_light_back_vec = gl.glGetUniformLocation(self.prog, 'LightRay_reverse')
+        self.gl_light_pow = gl.glGetUniformLocation(self.prog, 'LightPower')
+        self.gl_light_min = gl.glGetUniformLocation(self.prog, 'LightMinimal')
+        self.gl_eye_pos = gl.glGetUniformLocation(self.prog, 'EyePos')
         gl.glEnable(gl.GL_DEPTH_TEST)
         self.vao = gl.glGenVertexArrays(1)
         gl.glBindVertexArray(self.vao)
@@ -77,9 +81,11 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
         final = glmMatrix44(self.perspective.mat, self.cam.mat)
         gl.glUseProgram(self.prog)
         # set uniform data
-        gl.glUniformMatrix4fv(self.mvp, 1, gl.GL_FALSE, final.data())
-        gl.glUniform3fv(self.light_back_vec, 1, vec3_data(*self.cam.back_v()))
-        gl.glUniform3fv(self.eye_pos, 1, vec3_data(*self.cam.eye_pos))
+        gl.glUniformMatrix4fv(self.gl_mvp, 1, gl.GL_FALSE, final.data())
+        gl.glUniform3fv(self.gl_light_back_vec, 1, vec3_data(*self.cam.back_v()))
+        gl.glUniform3fv(self.gl_eye_pos, 1, vec3_data(*self.cam.eye_pos))
+        gl.glUniform1f(self.gl_light_pow, self.light_pow)
+        gl.glUniform1f(self.gl_light_min, self.light_min)
         # set vertex data
         gl.glBindVertexArray(self.vao)
         gl.glEnableVertexAttribArray(0)
@@ -145,6 +151,14 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
 
     def resetCamera(self):
         self.cam.setAll(5.0, 0.0, 45.0, 0.0, 0.0, 0.0)
+        self.update()
+
+    def setLightPow(self, value):
+        self.light_pow = value
+        self.update()
+
+    def setLightMin(self, value):
+        self.light_min = value
         self.update()
 
     def mouseDoubleClickEvent(self, a0: QtGui.QMouseEvent) -> None:
