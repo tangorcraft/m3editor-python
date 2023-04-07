@@ -86,14 +86,14 @@ class Attr:
     NAME = 'name'
     TYPE = 'type'
     HINT = 'hint'
-    REF_TO = 'refTo'
+    REF_TO = 'ref_to'
     MASK = 'mask'
-    DEFAULT = 'default-value'
-    EXPECTED = 'expected-value'
-    SINCE_VER = 'since-version'
-    TILL_VER = 'till-version' # inclusive
-    BINARY = 'char-binary'
-    VERTICES = 'ref-vertices'
+    DEFAULT = 'default_value'
+    EXPECTED = 'expected_value'
+    SINCE_VER = 'since_version'
+    TILL_VER = 'till_version' # inclusive
+    BINARY = 'char_binary'
+    VERTICES = 'ref_vertices'
 
 class m3Type():
     BINARY = 1

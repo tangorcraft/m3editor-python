@@ -104,9 +104,9 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
         for idx in range(0, self.m3regn.count):
             vi = self.m3regn.getFieldUnpackedByName(idx, m3.REGN.firstVertexIndex, '<I')
             if not vi: continue
-            fi = self.m3regn.getFieldUnpackedByName(idx, m3.REGN.firstFaceVertexIndexIndex, '<I')
+            fi = self.m3regn.getFieldUnpackedByName(idx, m3.REGN.faceArrayFirstVertexIndex, '<I')
             if not fi: continue
-            fn = self.m3regn.getFieldUnpackedByName(idx, m3.REGN.numberOfFaceVertexIndices, '<I')
+            fn = self.m3regn.getFieldUnpackedByName(idx, m3.REGN.faceArrayNumberOfIndices, '<I')
             if not fn: continue
             gl.glDrawElementsBaseVertex(gl.GL_TRIANGLES, fn[0], gl.GL_UNSIGNED_SHORT, gl.GLvoidp(fi[0]*2), vi[0])
         gl.glDisableVertexAttribArray(0)
@@ -199,7 +199,7 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
         return super().mouseReleaseEvent(a0)
 
     def wheelEvent(self, a0: QtGui.QWheelEvent) -> None:
-        d = a0.angleDelta().y() * -0.005
+        d = a0.angleDelta().y() * -0.002
         if d:
             self.cam.modifyDistance(d)
             self.update()
