@@ -34,8 +34,10 @@ IDX_REF_MODL_INDEX = 4
 
 FIELD_NOT_PART_OF_TAG = 'Field is not a part of tag structure'
 
-RefFromTuple = Tuple[int, int, int]
-''' Tuple( tag_index, item_index, field_index) '''
+REF_FROM_TAG = 0
+REF_FROM_ITEM = 1
+REF_FROM_FIELD = 2
+REF_FROM_OFFSET = 3
 
 SIZE_TO_FORMAT = {1: '<B', 2: '<H', 4: '<I'}
 
@@ -54,7 +56,8 @@ class m3Tag():
         self.type_count = count
         self.ver = ver
         self.info = m3StructInfo(tag, ver, file.structs)
-        self.refFrom = [] # type: List[RefFromTuple]
+        self.refFrom = [] # type: List[Tuple]
+        ''' RefFromTuple( tag_index, item_index, field_name, ref_data_absolute_offset) '''
         #if tag==m3struct.TAG_CHAR: pass
             # special case, 'data' contains a string of 'count-1' length + null-terminator (C string)
             # still, we should not decode it here, CHAR tag can contain binary data of unkown format (see MADD tag in structures.xml)
@@ -62,7 +65,7 @@ class m3Tag():
 
     def addRefFrom(self, tag_index, item_index, field: m3FieldInfo):
         if tag_index>0:
-            self.refFrom.append((tag_index, item_index, field.getIndex()))
+            self.refFrom.append((tag_index, item_index, field.name, field.getDataOffset(item_index)))
             if field.refToBinary:
                 self.info.forceBinary()
 
@@ -77,11 +80,16 @@ class m3Tag():
 
     def setStr(self, value: str):
         if self.info.type == m3Type.CHAR:
+            old_count = self.count
             self.data = bytearray(value, 'utf-8') + b'\x00'
             self.count = len(self.data)
             self.type_count = len(self.data)
             need = getTagStepNeededBytes(self.count)
             if need: self.data += b'\xaa'*need
+            if old_count != self.count:
+                for ref in self.refFrom: # update count in tags referencing this CHAR tag
+                    tag = self.file.tags[ref[REF_FROM_TAG]]
+                    pack_into('<I', tag.data, ref[REF_FROM_OFFSET], self.count) # count is first uint32 in Reference structure
 
     def getFieldInfoStr(self, field: m3FieldInfo):
         if not field in self.info.fields:
