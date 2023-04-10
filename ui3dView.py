@@ -46,15 +46,24 @@ class mainShader():
         self.light_min = gl.glGetUniformLocation(self.prog, 'LightMinimal')
         self.eye_pos = gl.glGetUniformLocation(self.prog, 'EyePos')
 
+def listCheckState(l: List[Qt.CheckState]):
+    for i in l:
+        if i != Qt.CheckState.Unchecked:
+            return Qt.CheckState.Checked
+    return Qt.CheckState.Unchecked
+
 class regionsModel(QAbstractItemModel):
     def __init__(self, m3file: m3File = None) -> None:
         super().__init__(None)
         self.root_count = 1
-        self.root_list = [0]
+        self.root_list = [0, 1]
         self.bat_root = 0
         self.bat_list = [] # type: List[Qt.CheckState]
+        self.bone_root = 1
+        self.bone_list = [] # type: List[Qt.CheckState]
         self.div = None
         self.bats = None
+        self.bones = None
         self.regns = None
         self.setM3(m3file)
 
@@ -73,6 +82,10 @@ class regionsModel(QAbstractItemModel):
             # REGN
             self.regns = self.div.getRefn(0, m3.DIV_.regions)
             if not self.regns: return
+            # BONE
+            self.bones = m3file.modl.getRefn(0, m3.MODL.bones)
+            if not self.bones: return
+            self.bone_list = [Qt.CheckState.Checked] * self.bones.count
             # Set m3
             self.m3 = m3file
         finally:
@@ -82,8 +95,9 @@ class regionsModel(QAbstractItemModel):
         if parent.isValid():
             if parent.internalId()==0 and self.m3:
                 root = parent.row()
-                if root == self.bat_root and row in range(0, self.bats.count):
-                    return self.createIndex(row, column, 1)
+                if root == self.bat_root and row in range(0, self.bats.count)\
+                or root == self.bone_root and row in range(0, self.bones.count):
+                    return self.createIndex(row, column, root + 1)
         elif row in range(0, len(self.root_list)):
             return self.createIndex(row, column, 0)
         return QModelIndex()
@@ -99,6 +113,8 @@ class regionsModel(QAbstractItemModel):
                 root = parent.row()
                 if root == self.bat_root:
                     return self.bats.count
+                elif root == self.bone_root:
+                    return self.bones.count
         else: return len(self.root_list)
         return 0
 
@@ -106,6 +122,8 @@ class regionsModel(QAbstractItemModel):
         return 1
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+        if index.isValid() and index.internalId()==0:
+            return super().flags(index) | Qt.ItemFlag.ItemIsUserCheckable
         return super().flags(index) | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsUserTristate
 
     def data(self, index: QModelIndex, role: int):
@@ -116,11 +134,23 @@ class regionsModel(QAbstractItemModel):
                 if role == Qt.ItemDataRole.DisplayRole:
                     if row == 0:
                         return 'Mesh batches'
+                    elif row == 1:
+                        return 'Bones'
+                elif role == Qt.ItemDataRole.CheckStateRole:
+                    if row == 0:
+                        return listCheckState(self.bat_list)
+                    elif row == 1:
+                        return listCheckState(self.bone_list)
             elif iid == 1 and row in range(0, self.bats.count): # batches
                 if role == Qt.ItemDataRole.DisplayRole:
                     return f'BAT_#{self.bats.idx}[{row}]'
                 elif role == Qt.ItemDataRole.CheckStateRole:
                     return self.bat_list[row]
+            elif iid == 2 and row in range(0, self.bones.count): # bones
+                if role == Qt.ItemDataRole.DisplayRole:
+                    return f'BONE#{self.bones.idx}[{row}]'
+                elif role == Qt.ItemDataRole.CheckStateRole:
+                    return self.bone_list[row]
         return QVariant()
 
     def setData(self, index: QModelIndex, value, role: int) -> bool:
@@ -132,14 +162,17 @@ class regionsModel(QAbstractItemModel):
                 row = index.row()
                 if row in range(0, len(self.bat_list)):
                     self.bat_list[row] = value
-                    self.dataChanged.emit(index, index)
+                    # root check state can change, so update whole model data
+                    self.dataChanged.emit(QModelIndex(), QModelIndex(), [role])
         return False
 
     def hasChildren(self, parent: QModelIndex) -> bool:
         if not parent.isValid(): return True
         if parent.internalId()==0 and parent.column() == 0 and self.m3:
             root = parent.row()
-            if root == self.bat_root:
+            if root == self.bat_root and self.bats.count:
+                return True
+            if root == self.bone_root and self.bones.count:
                 return True
         return False
 
@@ -162,6 +195,7 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
         self.mouse_Y = 0
         self.light_pow = 10.0
         self.light_min = 0.3
+        self.gl_init_done = False
 
     def initializeGL(self) -> None:
         super().initializeGL()
@@ -174,6 +208,8 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
         self.buff_face = gl.glGenBuffers(1)
         gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.buff_face)
         gl.glBindVertexArray(0)
+        self.gl_init_done = True
+        if self.m3: self.updateM3Data()
 
     def resizeGL(self, w: int, h: int) -> None:
         gl.glClearColor(0.0, 0.0, 0.4, 0.0)
@@ -238,6 +274,9 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
         self.vert_stride = self.m3.vert.info.item_size
         self.vert_mem = bytes(self.m3.vert.data)
         self.face_mem = bytes(self.m3faces.data)
+        if self.gl_init_done: self.updateM3Data()
+
+    def updateM3Data(self):
         self.makeCurrent()
         gl.glBindVertexArray(self.vao)
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.buff_vert)

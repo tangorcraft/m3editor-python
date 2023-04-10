@@ -88,6 +88,7 @@ class mainWin(QtWidgets.QMainWindow):
 
         self.ui.split3dViewH.setCollapsible(0, False)
         self.ui.tree3dView.setModel(self.ui.gl3dView.mtree)
+        self.ui.gl3dView.mtree.modelReset.connect(self.ui.tree3dView.expandAll)
         self.glTimer = QTimer(self)
         self.glTimer.timeout.connect(self.ui.gl3dView.update)
         self.glTimer.start(1000)
