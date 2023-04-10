@@ -51,7 +51,7 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
-         <widget class="QSplitter" name="splitter">
+         <widget class="QSplitter" name="splitTreeViewH">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -100,7 +100,7 @@
             </item>
            </layout>
           </widget>
-          <widget class="QSplitter" name="splitter_2">
+          <widget class="QSplitter" name="splitFieldTableV">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
              <horstretch>5</horstretch>
@@ -348,7 +348,42 @@
          </widget>
         </item>
         <item>
-         <widget class="m3glWidget" name="gl3dView"/>
+         <widget class="QSplitter" name="split3dViewH">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <widget class="m3glWidget" name="gl3dView">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>100</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>300</width>
+             <height>300</height>
+            </size>
+           </property>
+          </widget>
+          <widget class="QTreeView" name="tree3dView">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+             <horstretch>1</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>150</width>
+             <height>0</height>
+            </size>
+           </property>
+           <attribute name="headerDefaultSectionSize">
+            <number>80</number>
+           </attribute>
+          </widget>
+         </widget>
         </item>
        </layout>
       </widget>

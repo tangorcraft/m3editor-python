@@ -631,7 +631,12 @@ if __name__ == '__main__':
 
     def parseSubField(struct, prefix_k, prefix_v, typ):
         for f in sfile.structByName[typ][IDX_FIELDS]:
-            struct[prefix_k + f[Attr.NAME]] = prefix_v + f[Attr.NAME]
+            key = prefix_k + f[Attr.NAME]
+            struct[key] = {
+                'v': prefix_v + f[Attr.NAME],
+                't': f[Attr.TYPE],
+                's': 0
+            }
             size = m3Type.toSize(m3Type.fromName(f[Attr.TYPE]))
             if not Attr.SIZE in f and size==0:
                 match = re.search('(.*)V([0-9]+)$',f[Attr.TYPE])
@@ -641,10 +646,15 @@ if __name__ == '__main__':
                     n = f[Attr.TYPE]
                 if n in sfile.structByName:
                     parseSubField(struct, prefix_k + f[Attr.NAME] + '_', prefix_v + f[Attr.NAME] + SUB_STRUCT_DELIM, n)
+            else:
+                struct[key]['s'] = size
 
     for s in sfile.structByName:
         struct = {}
         parseSubField(struct, '', '', s)
         out_file.write(f'class {s}:\n')
         for f in struct:
-            out_file.write(f"    {f} = '{struct[f]}'\n")
+            out_file.write(f"    {f} = '{struct[f]['v']}'\n")
+            out_file.write(f"    ''' type {struct[f]['t']}")
+            if struct[f]['s']: out_file.write(f" size {struct[f]['s']}")
+            out_file.write(" '''\n")

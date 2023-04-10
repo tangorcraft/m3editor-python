@@ -38,7 +38,7 @@ class mainWin(QtWidgets.QMainWindow):
 
         self.ui = Ui_m3ew()
         self.ui.setupUi(self)
-        self.font().setStyleHint(QtGui.QFont.Monospace, QtGui.QFont.PreferDefault)
+        self.font().setStyleHint(QtGui.QFont.StyleHint.Monospace, QtGui.QFont.StyleStrategy.PreferDefault)
 
         ### Tree View ###
 
@@ -86,6 +86,8 @@ class mainWin(QtWidgets.QMainWindow):
 
         ### 3d View ###
 
+        self.ui.split3dViewH.setCollapsible(0, False)
+        self.ui.tree3dView.setModel(self.ui.gl3dView.mtree)
         self.glTimer = QTimer(self)
         self.glTimer.timeout.connect(self.ui.gl3dView.update)
         self.glTimer.start(1000)

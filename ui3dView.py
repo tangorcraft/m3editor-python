@@ -16,6 +16,7 @@
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import *
 from struct import pack
+from typing import List
 import OpenGL.GL as gl
 import OpenGL.GL.shaders as gls
 from m3file import m3File, m3Tag
@@ -27,21 +28,8 @@ import m3
 def vec3_data(v1, v2, v3):
     return pack('<fff', v1, v2, v3)
 
-class m3glWidget(QtWidgets.QOpenGLWidget):
-    def __init__(self, parent) -> None:
-        self.cam = glmHorizontalCamera(5.0, 0.0, 45.0, 0.0, 0.0, 0.0)
-        self.perspective = glmMatrix44()
-        self.wireframe = False
-        self.m3 = None
-        self.mouse_cap = Qt.MouseButton.NoButton
-        self.mouse_X = 0
-        self.mouse_Y = 0
-        self.light_pow = 10.0
-        self.light_min = 0.3
-        super().__init__(parent)
-
-    def initializeGL(self) -> None:
-        super().initializeGL()
+class mainShader():
+    def __init__(self) -> None:
         with open('modelEdit.frag','r') as file:
             frag = file.read()
             file.close()
@@ -52,11 +40,132 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
             gls.compileShader(frag, gl.GL_FRAGMENT_SHADER),
             gls.compileShader(vert, gl.GL_VERTEX_SHADER)
         )
-        self.gl_mvp = gl.glGetUniformLocation(self.prog, 'MVP')
-        self.gl_light_back_vec = gl.glGetUniformLocation(self.prog, 'LightRay_reverse')
-        self.gl_light_pow = gl.glGetUniformLocation(self.prog, 'LightPower')
-        self.gl_light_min = gl.glGetUniformLocation(self.prog, 'LightMinimal')
-        self.gl_eye_pos = gl.glGetUniformLocation(self.prog, 'EyePos')
+        self.mvp = gl.glGetUniformLocation(self.prog, 'MVP')
+        self.light_back_vec = gl.glGetUniformLocation(self.prog, 'LightRay_reverse')
+        self.light_pow = gl.glGetUniformLocation(self.prog, 'LightPower')
+        self.light_min = gl.glGetUniformLocation(self.prog, 'LightMinimal')
+        self.eye_pos = gl.glGetUniformLocation(self.prog, 'EyePos')
+
+class regionsModel(QAbstractItemModel):
+    def __init__(self, m3file: m3File = None) -> None:
+        super().__init__(None)
+        self.root_count = 1
+        self.root_list = [0]
+        self.bat_root = 0
+        self.bat_list = [] # type: List[Qt.CheckState]
+        self.div = None
+        self.bats = None
+        self.regns = None
+        self.setM3(m3file)
+
+    def setM3(self, m3file: m3File = None):
+        self.beginResetModel()
+        try:
+            self.m3 = None
+            if not m3file: return
+            # DIV_
+            self.div = m3file.modl.getRefn(0, m3.MODL.divisions)
+            if not self.div: return
+            # BAT_
+            self.bats = self.div.getRefn(0, m3.DIV_.batches)
+            if not self.bats: return
+            self.bat_list = [Qt.CheckState.Checked] * self.bats.count
+            # REGN
+            self.regns = self.div.getRefn(0, m3.DIV_.regions)
+            if not self.regns: return
+            # Set m3
+            self.m3 = m3file
+        finally:
+            self.endResetModel()
+
+    def index(self, row: int, column: int, parent: QModelIndex) -> QModelIndex:
+        if parent.isValid():
+            if parent.internalId()==0 and self.m3:
+                root = parent.row()
+                if root == self.bat_root and row in range(0, self.bats.count):
+                    return self.createIndex(row, column, 1)
+        elif row in range(0, len(self.root_list)):
+            return self.createIndex(row, column, 0)
+        return QModelIndex()
+
+    def parent(self, child: QModelIndex) -> QModelIndex:
+        if child.isValid() and child.internalId()!=0:
+            return self.createIndex(child.internalId()-1, 0, 0)
+        return QModelIndex()
+
+    def rowCount(self, parent: QModelIndex) -> int:
+        if parent.isValid() and self.m3:
+            if parent.internalId()==0 and parent.column() == 0:
+                root = parent.row()
+                if root == self.bat_root:
+                    return self.bats.count
+        else: return len(self.root_list)
+        return 0
+
+    def columnCount(self, parent: QModelIndex) -> int:
+        return 1
+
+    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+        return super().flags(index) | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsUserTristate
+
+    def data(self, index: QModelIndex, role: int):
+        if index.isValid():
+            iid = index.internalId()
+            row = index.row()
+            if iid == 0: # roots
+                if role == Qt.ItemDataRole.DisplayRole:
+                    if row == 0:
+                        return 'Mesh batches'
+            elif iid == 1 and row in range(0, self.bats.count): # batches
+                if role == Qt.ItemDataRole.DisplayRole:
+                    return f'BAT_#{self.bats.idx}[{row}]'
+                elif role == Qt.ItemDataRole.CheckStateRole:
+                    return self.bat_list[row]
+        return QVariant()
+
+    def setData(self, index: QModelIndex, value, role: int) -> bool:
+        if index.isValid() and role == Qt.ItemDataRole.CheckStateRole:
+            iid = index.internalId()
+            if iid == 0: # roots
+                pass
+            elif iid == 1: # batches
+                row = index.row()
+                if row in range(0, len(self.bat_list)):
+                    self.bat_list[row] = value
+                    self.dataChanged.emit(index, index)
+        return False
+
+    def hasChildren(self, parent: QModelIndex) -> bool:
+        if not parent.isValid(): return True
+        if parent.internalId()==0 and parent.column() == 0 and self.m3:
+            root = parent.row()
+            if root == self.bat_root:
+                return True
+        return False
+
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int):
+        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole and section == 0:
+            return 'Objects visibility'
+        return QVariant()
+
+class m3glWidget(QtWidgets.QOpenGLWidget):
+    def __init__(self, parent) -> None:
+        super().__init__(parent)
+        self.mtree = regionsModel()
+        self.mtree.dataChanged.connect(lambda a0,a1,a2: self.update())
+        self.cam = glmHorizontalCamera(5.0, 0.0, 45.0, 0.0, 0.0, 0.0)
+        self.perspective = glmMatrix44()
+        self.wireframe = False
+        self.m3 = None
+        self.mouse_cap = Qt.MouseButton.NoButton
+        self.mouse_X = 0
+        self.mouse_Y = 0
+        self.light_pow = 10.0
+        self.light_min = 0.3
+
+    def initializeGL(self) -> None:
+        super().initializeGL()
+        self.main = mainShader()
         gl.glEnable(gl.GL_DEPTH_TEST)
         self.vao = gl.glGenVertexArrays(1)
         gl.glBindVertexArray(self.vao)
@@ -76,16 +185,16 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
     def paintGL(self) -> None:
         self._camStatUpdate()
         gl.glClear(gl.GL_DEPTH_BUFFER_BIT | gl.GL_COLOR_BUFFER_BIT)
-        if not self.prog: return
+        if not self.main.prog: return
         if not self.m3: return
         final = glmMatrix44(self.perspective.mat, self.cam.mat)
-        gl.glUseProgram(self.prog)
+        gl.glUseProgram(self.main.prog)
         # set uniform data
-        gl.glUniformMatrix4fv(self.gl_mvp, 1, gl.GL_FALSE, final.data())
-        gl.glUniform3fv(self.gl_light_back_vec, 1, vec3_data(*self.cam.back_v()))
-        gl.glUniform3fv(self.gl_eye_pos, 1, vec3_data(*self.cam.eye_pos))
-        gl.glUniform1f(self.gl_light_pow, self.light_pow)
-        gl.glUniform1f(self.gl_light_min, self.light_min)
+        gl.glUniformMatrix4fv(self.main.mvp, 1, gl.GL_FALSE, final.data())
+        gl.glUniform3fv(self.main.light_back_vec, 1, vec3_data(*self.cam.back_v()))
+        gl.glUniform3fv(self.main.eye_pos, 1, vec3_data(*self.cam.eye_pos))
+        gl.glUniform1f(self.main.light_pow, self.light_pow)
+        gl.glUniform1f(self.main.light_min, self.light_min)
         # set vertex data
         gl.glBindVertexArray(self.vao)
         gl.glEnableVertexAttribArray(0)
@@ -93,35 +202,39 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.buff_vert)
         gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, self.vert_stride, None) # position
         gl.glVertexAttribPointer(1, 4, gl.GL_UNSIGNED_BYTE, gl.GL_FALSE, self.vert_stride, gl.GLvoidp(self.vert_offset_normal)) # normal
-        gl.glVertexAttribPointer(2, 2, gl.GL_SHORT, gl.GL_FALSE, self.vert_stride, None)#self.vert_offset_uv) # uv0
+        gl.glVertexAttribPointer(2, 2, gl.GL_SHORT, gl.GL_FALSE, self.vert_stride, gl.GLvoidp(self.vert_offset_uv0)) # uv0
         # set faces data
-        if self.wireframe:
-            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
-        else:
-            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
         gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.buff_face)
         # draw
-        for idx in range(0, self.m3regn.count):
-            vi = self.m3regn.getFieldUnpackedByName(idx, m3.REGN.firstVertexIndex, '<I')
+        for idx in range(0, self.mtree.bats.count):
+            state = self.mtree.bat_list[idx]
+            if state == Qt.CheckState.Unchecked: continue
+            regn_idx = self.mtree.bats.getFieldUnpackedByName(idx, m3.BAT_.regionIndex, '<H')
+            if not regn_idx: continue
+            regn_idx = regn_idx[0]
+            vi = self.mtree.regns.getFieldUnpackedByName(regn_idx, m3.REGN.firstVertexIndex, '<I')
             if not vi: continue
-            fi = self.m3regn.getFieldUnpackedByName(idx, m3.REGN.faceArrayFirstVertexIndex, '<I')
+            fi = self.mtree.regns.getFieldUnpackedByName(regn_idx, m3.REGN.faceArrayFirstVertexIndex, '<I')
             if not fi: continue
-            fn = self.m3regn.getFieldUnpackedByName(idx, m3.REGN.faceArrayNumberOfIndices, '<I')
+            fn = self.mtree.regns.getFieldUnpackedByName(regn_idx, m3.REGN.faceArrayNumberOfIndices, '<I')
             if not fn: continue
+            if state == Qt.CheckState.Checked:
+                gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
+            else:
+                gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
             gl.glDrawElementsBaseVertex(gl.GL_TRIANGLES, fn[0], gl.GL_UNSIGNED_SHORT, gl.GLvoidp(fi[0]*2), vi[0])
         gl.glDisableVertexAttribArray(0)
         gl.glDisableVertexAttribArray(1)
 
     def setM3(self, m3file: m3File):
-        self.m3div = m3file.modl.getRefn(0, m3.MODL.divisions)
-        if not self.m3div: return
-        self.m3faces = self.m3div.getRefn(0, m3.DIV_.faces)
+        self.mtree.setM3(m3file)
+        self.m3 = None
+        if not self.mtree.m3: return
+        self.m3faces = self.mtree.div.getRefn(0, m3.DIV_.faces)
         if not self.m3faces: return
-        self.m3regn = self.m3div.getRefn(0, m3.DIV_.regions)
-        if not self.m3regn: return
         self.m3 = m3file
         self.vert_offset_normal = self.m3.vert.info.getFieldOffsetByName(m3.VertexFormat.normal)
-        self.vert_offset_uv = self.m3.vert.info.getFieldOffsetByName(m3.VertexFormat.uv0)
+        self.vert_offset_uv0 = self.m3.vert.info.getFieldOffsetByName(m3.VertexFormat.uv0)
         self.vert_stride = self.m3.vert.info.item_size
         self.vert_mem = bytes(self.m3.vert.data)
         self.face_mem = bytes(self.m3faces.data)
