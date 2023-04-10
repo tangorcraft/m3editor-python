@@ -44,7 +44,7 @@ class mainWin(QtWidgets.QMainWindow):
 
         self.tagsModel = TagTreeModel()
         self.ui.tagsTree.setModel(self.tagsModel)
-        self.ui.tagsTree.clicked.connect(self.tagTreeClick)
+        self.ui.tagsTree.selectionModel().currentChanged.connect(self.tagTreeClick)
         self.resetItemNaviText('##')
 
         self.simpleEditor = SimpleFieldEdit(self)
@@ -53,8 +53,8 @@ class mainWin(QtWidgets.QMainWindow):
         self.fieldsModel.modelReset.connect(self.fieldsModelReset)
         self.fieldsModel.dataChanged.connect(lambda a,b: self.fieldsDataChanged())
         self.fieldsFilterModel = QSortFilterProxyModel()
-        self.fieldsFilterModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
-        self.fieldsFilterModel.setFilterRole(Qt.StatusTipRole)
+        self.fieldsFilterModel.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.fieldsFilterModel.setFilterRole(Qt.ItemDataRole.StatusTipRole)
         self.fieldsFilterModel.setRecursiveFilteringEnabled(True)
         self.fieldsFilterModel.setSourceModel(self.fieldsModel)
         self.ui.fieldsTable.setModel(self.fieldsFilterModel)
@@ -170,7 +170,7 @@ class mainWin(QtWidgets.QMainWindow):
                     self.simpleEditor.editValue(self.fieldsModel.tag, self.fieldsModel.tag_item, f)
             pass
 
-    def tagTreeClick(self, item: QModelIndex):
+    def tagTreeClick(self, item: QModelIndex, old_item: QModelIndex):
         if item.isValid():
             shadow = item.data(TagTreeModel.TagTreeShadowRole) # type: ShadowItem
             if shadow.tag:
