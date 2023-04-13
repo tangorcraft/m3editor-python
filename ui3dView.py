@@ -15,10 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import *
-from struct import pack
+from struct import pack, calcsize
 from typing import List
 import OpenGL.GL as gl
 import OpenGL.GL.shaders as gls
+from common import pack_all
 from m3file import m3File, m3Tag
 from m3struct import m3FieldInfo
 from gl.glMath import glmMatrix44
@@ -46,13 +47,95 @@ class mainShader():
         self.light_min = gl.glGetUniformLocation(self.prog, 'LightMinimal')
         self.eye_pos = gl.glGetUniformLocation(self.prog, 'EyePos')
 
-def listCheckState(l: List[Qt.CheckState]):
-    for i in l:
-        if i != Qt.CheckState.Unchecked:
-            return Qt.CheckState.Checked
-    return Qt.CheckState.Unchecked
+class helperShader():
+    BONE_VS = pack_all('<f',
+        # x,   y,   z,   r,   g,   b,
+        0.00, 0.00, 0.00, 1.0, 1.0, 1.0, #0#
+        0.01, 0.00, 0.00, 0.2, 0.2, 1.0, #1# x 0.2
+        0.10, 0.00, 0.00, 0.2, 0.2, 1.0, #2# x 1.0
+        0.01, 0.02, 0.00, 1.0, 0.2, 0.2, #3# y 0.2
+        0.01, 0.00, 0.02, 0.2, 1.0, 0.2, #4# z 0.2
+        0.01,-0.02, 0.00, 1.0, 1.0, 1.0, #5#-y 0.2
+        0.01, 0.00,-0.02, 1.0, 1.0, 1.0, #6#-z 0.2
+    )
+    ''' packed vertices data (floats)'''
+    BONE_STRIDE = calcsize('<f')*6
+    BONE_COL_OFFSET = calcsize('<f')*3
+    BONE_ELS = pack_all('<B',
+        0, 1, 1, 2,
+        0, 3, 3, 1, 3, 2,
+        0, 4, 4, 1, 4, 2,
+        0, 5, 5, 1, 5, 2,
+        0, 6, 6, 1, 6, 2,
+        3, 4, 4, 5, 5, 6, 6, 3,
+    )
+    ''' packed elements data (uint8, gl_lines)'''
 
-class regionsModel(QAbstractItemModel):
+    def __init__(self) -> None:
+        with open('helper.frag','r') as file:
+            frag = file.read()
+            file.close()
+        with open('helper.vert','r') as file:
+            vert = file.read()
+            file.close()
+        self.prog = gls.compileProgram(
+            gls.compileShader(frag, gl.GL_FRAGMENT_SHADER),
+            gls.compileShader(vert, gl.GL_VERTEX_SHADER)
+        )
+        self.mvp = gl.glGetUniformLocation(self.prog, 'MVP')
+        self.light_pow = gl.glGetUniformLocation(self.prog, 'LightPower')
+        self.light_min = gl.glGetUniformLocation(self.prog, 'LightMinimal')
+        self.eye_pos = gl.glGetUniformLocation(self.prog, 'EyePos')
+        self.bone_vao = gl.glGenVertexArrays(1)
+        gl.glBindVertexArray(self.bone_vao)
+        self.bone_vert = gl.glGenBuffers(1)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.bone_vert)
+        gl.glBufferData(gl.GL_ARRAY_BUFFER, self.BONE_VS, gl.GL_STATIC_DRAW)
+        gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, self.BONE_STRIDE, None) # position
+        gl.glVertexAttribPointer(1, 3, gl.GL_FLOAT, gl.GL_FALSE, self.BONE_STRIDE, gl.GLvoidp(self.BONE_COL_OFFSET)) # color
+        self.bone_lines = gl.glGenBuffers(1)
+        gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.bone_lines)
+        gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, self.BONE_ELS, gl.GL_STATIC_DRAW)
+        gl.glBindVertexArray(0)
+
+    def drawBoneBegin(self, cam: glmHorizontalCamera, light_pow: float, light_min: float):
+        gl.glUseProgram(self.prog)
+        # set uniform data
+        gl.glUniform3fv(self.eye_pos, 1, vec3_data(*cam.eye_pos))
+        gl.glUniform1f(self.light_pow, light_pow)
+        gl.glUniform1f(self.light_min, light_min)
+        # set vertex data
+        gl.glBindVertexArray(self.bone_vao)
+        gl.glEnableVertexAttribArray(0)
+        gl.glEnableVertexAttribArray(1)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.bone_vert)
+        # draw
+        gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.bone_lines)
+
+    def drawBone(self, mvp: glmMatrix44):
+        gl.glUniformMatrix4fv(self.mvp, 1, gl.GL_FALSE, mvp.data())
+        gl.glDrawElements(gl.GL_LINES, len(self.BONE_ELS), gl.GL_UNSIGNED_BYTE, None)
+
+    def drawBoneEnd(self):
+        gl.glDisableVertexAttribArray(0)
+        gl.glDisableVertexAttribArray(1)
+
+def listCheckState(l: List[Qt.CheckState]):
+    ret = Qt.CheckState.Unchecked
+    for i in l:
+        if i == Qt.CheckState.Checked:
+            return Qt.CheckState.Checked
+        elif i == Qt.CheckState.PartiallyChecked:
+            ret = Qt.CheckState.PartiallyChecked
+    return ret
+
+IID_ROOT = 100
+
+class glTreeItem():
+    def __init__(self) -> None:
+        pass
+
+class glViewTreeModel(QAbstractItemModel):
     def __init__(self, m3file: m3File = None) -> None:
         super().__init__(None)
         self.root_count = 1
@@ -93,23 +176,23 @@ class regionsModel(QAbstractItemModel):
 
     def index(self, row: int, column: int, parent: QModelIndex) -> QModelIndex:
         if parent.isValid():
-            if parent.internalId()==0 and self.m3:
+            if parent.internalId()==IID_ROOT and self.m3:
                 root = parent.row()
                 if root == self.bat_root and row in range(0, self.bats.count)\
                 or root == self.bone_root and row in range(0, self.bones.count):
-                    return self.createIndex(row, column, root + 1)
+                    return self.createIndex(row, column, root)
         elif row in range(0, len(self.root_list)):
-            return self.createIndex(row, column, 0)
+            return self.createIndex(row, column, IID_ROOT)
         return QModelIndex()
 
     def parent(self, child: QModelIndex) -> QModelIndex:
-        if child.isValid() and child.internalId()!=0:
-            return self.createIndex(child.internalId()-1, 0, 0)
+        if child.isValid() and child.internalId()!=IID_ROOT:
+            return self.createIndex(child.internalId(), 0, IID_ROOT)
         return QModelIndex()
 
     def rowCount(self, parent: QModelIndex) -> int:
         if parent.isValid() and self.m3:
-            if parent.internalId()==0 and parent.column() == 0:
+            if parent.internalId()==IID_ROOT and parent.column() == 0:
                 root = parent.row()
                 if root == self.bat_root:
                     return self.bats.count
@@ -122,15 +205,16 @@ class regionsModel(QAbstractItemModel):
         return 1
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
-        if index.isValid() and index.internalId()==0:
-            return super().flags(index) | Qt.ItemFlag.ItemIsUserCheckable
-        return super().flags(index) | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsUserTristate
+        if index.isValid() and index.internalId()==self.bat_root or\
+        (index.internalId()==IID_ROOT and index.row()==self.bat_root): # only batches use tristate
+            return super().flags(index) | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsUserTristate
+        return super().flags(index) | Qt.ItemFlag.ItemIsUserCheckable
 
     def data(self, index: QModelIndex, role: int):
         if index.isValid():
             iid = index.internalId()
             row = index.row()
-            if iid == 0: # roots
+            if iid == IID_ROOT:
                 if role == Qt.ItemDataRole.DisplayRole:
                     if row == 0:
                         return 'Mesh batches'
@@ -141,12 +225,12 @@ class regionsModel(QAbstractItemModel):
                         return listCheckState(self.bat_list)
                     elif row == 1:
                         return listCheckState(self.bone_list)
-            elif iid == 1 and row in range(0, self.bats.count): # batches
+            elif iid == self.bat_root and row in range(0, self.bats.count):
                 if role == Qt.ItemDataRole.DisplayRole:
                     return f'BAT_#{self.bats.idx}[{row}]'
                 elif role == Qt.ItemDataRole.CheckStateRole:
                     return self.bat_list[row]
-            elif iid == 2 and row in range(0, self.bones.count): # bones
+            elif iid == self.bone_root and row in range(0, self.bones.count):
                 if role == Qt.ItemDataRole.DisplayRole:
                     return f'BONE#{self.bones.idx}[{row}]'
                 elif role == Qt.ItemDataRole.CheckStateRole:
@@ -156,19 +240,32 @@ class regionsModel(QAbstractItemModel):
     def setData(self, index: QModelIndex, value, role: int) -> bool:
         if index.isValid() and role == Qt.ItemDataRole.CheckStateRole:
             iid = index.internalId()
-            if iid == 0: # roots
-                pass
-            elif iid == 1: # batches
+            if iid == IID_ROOT:
+                root = index.row()
+                if root == self.bat_root:
+                    for i in range(0, len(self.bat_list)):
+                        self.bat_list[i] = value
+                        self.dataChanged.emit(QModelIndex(), QModelIndex(), [role])
+                if root == self.bone_root:
+                    for i in range(0, len(self.bone_list)):
+                        self.bone_list[i] = value
+                        self.dataChanged.emit(QModelIndex(), QModelIndex(), [role])
+            elif iid == self.bat_root:
                 row = index.row()
                 if row in range(0, len(self.bat_list)):
                     self.bat_list[row] = value
                     # root check state can change, so update whole model data
                     self.dataChanged.emit(QModelIndex(), QModelIndex(), [role])
+            elif iid == self.bone_root:
+                row = index.row()
+                if row in range(0, len(self.bone_list)):
+                    self.bone_list[row] = value
+                    self.dataChanged.emit(QModelIndex(), QModelIndex(), [role])
         return False
 
     def hasChildren(self, parent: QModelIndex) -> bool:
         if not parent.isValid(): return True
-        if parent.internalId()==0 and parent.column() == 0 and self.m3:
+        if parent.internalId()==IID_ROOT and parent.column() == 0 and self.m3:
             root = parent.row()
             if root == self.bat_root and self.bats.count:
                 return True
@@ -184,7 +281,7 @@ class regionsModel(QAbstractItemModel):
 class m3glWidget(QtWidgets.QOpenGLWidget):
     def __init__(self, parent) -> None:
         super().__init__(parent)
-        self.mtree = regionsModel()
+        self.mtree = glViewTreeModel()
         self.mtree.dataChanged.connect(lambda a0,a1,a2: self.update())
         self.cam = glmHorizontalCamera(5.0, 0.0, 45.0, 0.0, 0.0, 0.0)
         self.perspective = glmMatrix44()
@@ -200,6 +297,7 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
     def initializeGL(self) -> None:
         super().initializeGL()
         self.main = mainShader()
+        self.helper = helperShader()
         gl.glEnable(gl.GL_DEPTH_TEST)
         self.vao = gl.glGenVertexArrays(1)
         gl.glBindVertexArray(self.vao)
@@ -212,7 +310,7 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
         if self.m3: self.updateM3Data()
 
     def resizeGL(self, w: int, h: int) -> None:
-        gl.glClearColor(0.0, 0.0, 0.4, 0.0)
+        gl.glClearColor(0.2, 0.2, 0.3, 0.0)
         self.perspective.identPerspectiveDeg(45.0, w/h, 1.0, 500.0)
         #self.mvp_mat.mulMatrix44(self.cam.mat)
         gl.glViewport(0,0,w,h)
@@ -241,7 +339,7 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
         gl.glVertexAttribPointer(2, 2, gl.GL_SHORT, gl.GL_FALSE, self.vert_stride, gl.GLvoidp(self.vert_offset_uv0)) # uv0
         # set faces data
         gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.buff_face)
-        # draw
+        # draw mesh
         for idx in range(0, self.mtree.bats.count):
             state = self.mtree.bat_list[idx]
             if state == Qt.CheckState.Unchecked: continue
@@ -261,6 +359,14 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
             gl.glDrawElementsBaseVertex(gl.GL_TRIANGLES, fn[0], gl.GL_UNSIGNED_SHORT, gl.GLvoidp(fi[0]*2), vi[0])
         gl.glDisableVertexAttribArray(0)
         gl.glDisableVertexAttribArray(1)
+        # draw bones
+        self.helper.drawBoneBegin(self.cam, self.light_pow, self.light_min)
+        for idx in range(0, self.mtree.bones.count):
+            if self.mtree.bone_list[idx] == Qt.CheckState.Unchecked: continue
+            mat = glmMatrix44().loadFrom(self.m3iref.data, self.m3iref.info.item_size * idx)
+            if not mat.invert(): continue
+            self.helper.drawBone(glmMatrix44(self.perspective.mat, self.cam.mat, mat.mat))
+        self.helper.drawBoneEnd()
 
     def setM3(self, m3file: m3File):
         self.mtree.setM3(m3file)
@@ -268,6 +374,8 @@ class m3glWidget(QtWidgets.QOpenGLWidget):
         if not self.mtree.m3: return
         self.m3faces = self.mtree.div.getRefn(0, m3.DIV_.faces)
         if not self.m3faces: return
+        self.m3iref = m3file.modl.getRefn(0, m3.MODL.absoluteInverseBoneRestPositions)
+        if not self.m3iref: return
         self.m3 = m3file
         self.vert_offset_normal = self.m3.vert.info.getFieldOffsetByName(m3.VertexFormat.normal)
         self.vert_offset_uv0 = self.m3.vert.info.getFieldOffsetByName(m3.VertexFormat.uv0)

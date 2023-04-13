@@ -635,8 +635,11 @@ if __name__ == '__main__':
             struct[key] = {
                 'v': prefix_v + f[Attr.NAME],
                 't': f[Attr.TYPE],
-                's': 0
+                's': 0,
+                'r': ''
             }
+            if Attr.REF_TO in f:
+                struct[key]['r'] = f[Attr.REF_TO]
             size = m3Type.toSize(m3Type.fromName(f[Attr.TYPE]))
             if not Attr.SIZE in f and size==0:
                 match = re.search('(.*)V([0-9]+)$',f[Attr.TYPE])
@@ -656,5 +659,6 @@ if __name__ == '__main__':
         for f in struct:
             out_file.write(f"    {f} = '{struct[f]['v']}'\n")
             out_file.write(f"    ''' type {struct[f]['t']}")
+            if struct[f]['r']: out_file.write(f" ref_to {struct[f]['r']}")
             if struct[f]['s']: out_file.write(f" size {struct[f]['s']}")
             out_file.write(" '''\n")

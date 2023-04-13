@@ -26,7 +26,8 @@ void main(){
   float distance = length( EyeDirection );
 
   color =
-    baseColor * LightMinimal +
+    baseColor * 0.2 +
+    baseColor * LightMinimal * cosTheta +
     baseColor * LightPower * cosTheta / ( distance * distance ) +
     specularColor * LightPower * pow(cosAlpha,3) / (distance*distance)
   ;
