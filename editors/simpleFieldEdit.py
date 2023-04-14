@@ -20,6 +20,7 @@ from editors.Ui_simpleEditDialog import Ui_Dialog
 from m3file import m3File, m3Tag
 from m3struct import m3FieldInfo, m3Type
 from struct import pack, pack_into, unpack, error as struct_error
+from common import fixed8_to_float, fixed16_to_float, float_to_fixed8, float_to_fixed16
 
 RESULT_CANCEL = QtWidgets.QDialog.Rejected
 RESULT_OK = RESULT_CANCEL + 1
@@ -50,12 +51,21 @@ class SimpleFieldEdit(QtWidgets.QDialog):
         else:
             self.ui.lblSigned.setText('Signed:')
             self.ui.lblUnsigned.setText('Unsigned:')
-        self.setValue(self.init_value)
+        self.displayValue()
         return self.exec()
 
     def editValue(self, tag: m3Tag, item: int, field: m3FieldInfo) -> bool:
         if field.type in m3Type.SIMPLE:
             self.floatDisplay = field.type in m3Type.REAL
+            if field.type == m3Type.FIXED8:
+                self.float_convert = fixed8_to_float
+                self.float_convert_back = float_to_fixed8
+            elif field.type == m3Type.FIXED16:
+                self.float_convert = fixed16_to_float
+                self.float_convert_back = float_to_fixed16
+            else:
+                self.float_convert = lambda x: x
+                self.float_convert_back = lambda x: x
             self.val_size = field.size
             self.init_value = tag.getFieldValue(item, field)
             self.value = self.init_value
@@ -78,11 +88,11 @@ class SimpleFieldEdit(QtWidgets.QDialog):
                 self.value = unpack(self.val_format, pack(self.hex_format, val))
             else:
                 if self.floatDisplay:
-                    val = float(val)
+                    val = self.float_convert_back(float(val))
                 elif sender == self.ui.edtSigned:
-                    val = int(self.ui.edtSigned.text())
+                    val = int(val)
                 elif sender == self.ui.edtUnsigned:
-                    val = abs(int(self.ui.edtUnsigned.text()))
+                    val = abs(int(val))
                 pack(self.val_format, val) # test if value can be packed into right format
                 self.value = val
         except (ValueError, struct_error) as e:
@@ -93,10 +103,11 @@ class SimpleFieldEdit(QtWidgets.QDialog):
 
     def displayValue(self, sender = None):
         if self.floatDisplay:
+            val = self.float_convert(self.value)
             if sender != self.ui.edtSigned:
-                self.ui.edtSigned.setText(f'{self.value}')
+                self.ui.edtSigned.setText(f'{val}')
             if sender != self.ui.edtUnsigned:
-                self.ui.edtUnsigned.setText(f'{self.value:e}')
+                self.ui.edtUnsigned.setText(f'{val:e}')
         else:
             if sender != self.ui.edtSigned:
                 self.ui.edtSigned.setText(f'{self.signValue()}')

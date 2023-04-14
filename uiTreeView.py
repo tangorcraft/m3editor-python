@@ -443,8 +443,6 @@ class fieldsTableModel(QAbstractItemModel):
             elif role == Qt.ItemDataRole.ToolTipRole:
                 tip = f.getHint()
                 if tip: return tip
-        else:
-            f = None
         if role == fieldsTableModel.FieldRole and f:
             return f
         if role == fieldsTableModel.FullFieldHintRole and f:

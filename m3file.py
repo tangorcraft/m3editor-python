@@ -18,7 +18,7 @@ from typing import List, Tuple
 from struct import pack, pack_into, unpack_from, calcsize
 from m3struct import m3FieldInfo, m3StructFile, m3StructInfo, m3Type,\
     TAG_HEADER_33, TAG_HEADER_34, TAG_HEADER_VER, TAG_CHAR, BINARY_DATA_ITEM_BYTES_COUNT
-from common import ceildiv, getTagStepNeededBytes
+from common import ceildiv, getTagStepNeededBytes, fixed8_to_float, fixed16_to_float
 import m3
 
 INDEX_REF_SIZE = calcsize('<IIII') # tag, dataOffset, dataCount, version
@@ -131,9 +131,9 @@ class m3Tag():
             val = unpack_from(m3Type.toFormat(field.type), self.data, offset)[0]
             hex = unpack_from(m3Type.toHexFormat(field.type), self.data, offset)[0]
             if field.type == m3Type.FIXED8:
-                val = (val / 255.0) * 2 - 1
+                val = fixed8_to_float(val)
             if field.type == m3Type.FIXED16:
-                val = val / 2048.0
+                val = fixed16_to_float(val)
             hex_size = m3Type.toSize(field.type) * 2
             return f'{val} (0x{hex:0{hex_size}x})'
         if field.type == m3Type.BIT:
