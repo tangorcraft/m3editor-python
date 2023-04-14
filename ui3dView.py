@@ -129,31 +129,63 @@ def listCheckState(l: List[Qt.CheckState]):
             ret = Qt.CheckState.PartiallyChecked
     return ret
 
-IID_ROOT = 100
-
 class glTreeItem():
-    def __init__(self) -> None:
-        pass
+    TYPE_ROOT = 0
+    TYPE_BATCH = 1
+    TYPE_BONE = 2
+    def __init__(self, tree_idx, text, gl_item_type, type_item_idx = 0, parent = -1) -> None:
+        self.tree_idx = tree_idx
+        self.tree_row = 0
+        self.text = text
+        self.type = gl_item_type
+        self.type_idx = type_item_idx
+        self.parent = parent
+        self.children = []
+
+    def noticeChild(self, child):
+        if child in self.children:
+            return self.children.index(child)
+        else:
+            idx = len(self.children)
+            self.children.append(child)
+            return idx
+
+    def dropChildren(self):
+        self.children = []
 
 class glViewTreeModel(QAbstractItemModel):
     def __init__(self, m3file: m3File = None) -> None:
         super().__init__(None)
-        self.root_count = 1
+        self.bat_root = glTreeItem(0, 'Mesh batches', glTreeItem.TYPE_ROOT)
+        self.bone_root = glTreeItem(1, 'Bones', glTreeItem.TYPE_ROOT)
         self.root_list = [0, 1]
-        self.bat_root = 0
-        self.bat_list = [] # type: List[Qt.CheckState]
-        self.bone_root = 1
-        self.bone_list = [] # type: List[Qt.CheckState]
-        self.div = None
-        self.bats = None
-        self.bones = None
-        self.regns = None
         self.setM3(m3file)
+
+    def addNode(self, node_type, node_type_idx, text, parent = -1):
+        idx = len(self.node_list)
+        it = glTreeItem(idx, text, node_type, node_type_idx, parent)
+        self.node_list.append(it)
+        return it
+
+    def getNode(self, idx):
+        if idx in range(0, len(self.node_list)):
+            return self.node_list[idx]
 
     def setM3(self, m3file: m3File = None):
         self.beginResetModel()
         try:
+            # reset model vars
+            self.bat_root.dropChildren()
+            self.bone_root.dropChildren()
+            self.node_list = [self.bat_root, self.bone_root]
+            self.bat_list = [] # type: List[Qt.CheckState]
+            self.bone_list = [] # type: List[Qt.CheckState]
+            self.div = None
+            self.bats = None
+            self.bones = None
+            self.regns = None
             self.m3 = None
+            # get info from m3 file
             if not m3file: return
             # DIV_
             self.div = m3file.modl.getRefn(0, m3.MODL.divisions)
@@ -162,6 +194,9 @@ class glViewTreeModel(QAbstractItemModel):
             self.bats = self.div.getRefn(0, m3.DIV_.batches)
             if not self.bats: return
             self.bat_list = [Qt.CheckState.Checked] * self.bats.count
+            for idx in range(0, self.bats.count):
+                it = self.addNode(glTreeItem.TYPE_BATCH, idx, f'BAT_#{self.bats.idx}[{idx}]', self.bat_root.tree_idx)
+                it.tree_row = self.bat_root.noticeChild(it.tree_idx)
             # REGN
             self.regns = self.div.getRefn(0, m3.DIV_.regions)
             if not self.regns: return
@@ -169,6 +204,16 @@ class glViewTreeModel(QAbstractItemModel):
             self.bones = m3file.modl.getRefn(0, m3.MODL.bones)
             if not self.bones: return
             self.bone_list = [Qt.CheckState.Checked] * self.bones.count
+            bone_item_map = [None] * self.bones.count # type: List[glTreeItem]
+            for idx in range(0, self.bones.count):
+                it = self.addNode(glTreeItem.TYPE_BONE, idx, f'BONE#{self.bones.idx}[{idx}]', self.bone_root.tree_idx)
+                bone_item_map[idx] = it
+                parent = self.bones.getFieldValueByName(idx, m3.BONE.parent)
+                if parent and parent in range(0, self.bones.count) and parent < idx: # don't allow parent index >= child index to avoid possible loops
+                    it.parent = bone_item_map[parent].tree_idx
+                    it.tree_row = bone_item_map[parent].noticeChild(it.tree_idx)
+                else:
+                    it.tree_row = self.bone_root.noticeChild(it.tree_idx)
             # Set m3
             self.m3 = m3file
         finally:
@@ -176,28 +221,27 @@ class glViewTreeModel(QAbstractItemModel):
 
     def index(self, row: int, column: int, parent: QModelIndex) -> QModelIndex:
         if parent.isValid():
-            if parent.internalId()==IID_ROOT and self.m3:
-                root = parent.row()
-                if root == self.bat_root and row in range(0, self.bats.count)\
-                or root == self.bone_root and row in range(0, self.bones.count):
-                    return self.createIndex(row, column, root)
+            it = self.getNode(parent.internalId())
+            if it and row in range(0, len(it.children)):
+                return self.createIndex(row, column, it.children[row])
         elif row in range(0, len(self.root_list)):
-            return self.createIndex(row, column, IID_ROOT)
+            return self.createIndex(row, column, self.root_list[row])
         return QModelIndex()
 
     def parent(self, child: QModelIndex) -> QModelIndex:
-        if child.isValid() and child.internalId()!=IID_ROOT:
-            return self.createIndex(child.internalId(), 0, IID_ROOT)
+        if child.isValid():
+            it = self.getNode(child.internalId())
+            if it:
+                parent = self.getNode(it.parent)
+                if parent:
+                    return self.createIndex(parent.tree_row, 0, it.parent)
         return QModelIndex()
 
     def rowCount(self, parent: QModelIndex) -> int:
-        if parent.isValid() and self.m3:
-            if parent.internalId()==IID_ROOT and parent.column() == 0:
-                root = parent.row()
-                if root == self.bat_root:
-                    return self.bats.count
-                elif root == self.bone_root:
-                    return self.bones.count
+        if parent.isValid():
+            it = self.getNode(parent.internalId())
+            if it:
+                return len(it.children)
         else: return len(self.root_list)
         return 0
 
@@ -205,72 +249,55 @@ class glViewTreeModel(QAbstractItemModel):
         return 1
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
-        if index.isValid() and index.internalId()==self.bat_root or\
-        (index.internalId()==IID_ROOT and index.row()==self.bat_root): # only batches use tristate
-            return super().flags(index) | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsUserTristate
+        if index.isValid():
+            it = self.getNode(index.internalId())
+            if it.type==glTreeItem.TYPE_BATCH or it==self.bat_root: # only batches use tristate
+                return super().flags(index) | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsUserTristate
         return super().flags(index) | Qt.ItemFlag.ItemIsUserCheckable
 
     def data(self, index: QModelIndex, role: int):
         if index.isValid():
-            iid = index.internalId()
-            row = index.row()
-            if iid == IID_ROOT:
+            it = self.getNode(index.internalId())
+            if it:
                 if role == Qt.ItemDataRole.DisplayRole:
-                    if row == 0:
-                        return 'Mesh batches'
-                    elif row == 1:
-                        return 'Bones'
+                    return it.text
                 elif role == Qt.ItemDataRole.CheckStateRole:
-                    if row == 0:
+                    if it == self.bat_root:
                         return listCheckState(self.bat_list)
-                    elif row == 1:
+                    elif it == self.bone_root:
                         return listCheckState(self.bone_list)
-            elif iid == self.bat_root and row in range(0, self.bats.count):
-                if role == Qt.ItemDataRole.DisplayRole:
-                    return f'BAT_#{self.bats.idx}[{row}]'
-                elif role == Qt.ItemDataRole.CheckStateRole:
-                    return self.bat_list[row]
-            elif iid == self.bone_root and row in range(0, self.bones.count):
-                if role == Qt.ItemDataRole.DisplayRole:
-                    return f'BONE#{self.bones.idx}[{row}]'
-                elif role == Qt.ItemDataRole.CheckStateRole:
-                    return self.bone_list[row]
+                    elif it.type == glTreeItem.TYPE_BATCH:
+                        return self.bat_list[it.type_idx]
+                    elif it.type == glTreeItem.TYPE_BONE:
+                        return self.bone_list[it.type_idx]
         return QVariant()
 
     def setData(self, index: QModelIndex, value, role: int) -> bool:
         if index.isValid() and role == Qt.ItemDataRole.CheckStateRole:
-            iid = index.internalId()
-            if iid == IID_ROOT:
-                root = index.row()
-                if root == self.bat_root:
+            it = self.getNode(index.internalId())
+            if it:
+                if it == self.bat_root:
                     for i in range(0, len(self.bat_list)):
                         self.bat_list[i] = value
                         self.dataChanged.emit(QModelIndex(), QModelIndex(), [role])
-                if root == self.bone_root:
+                elif it == self.bone_root:
                     for i in range(0, len(self.bone_list)):
                         self.bone_list[i] = value
                         self.dataChanged.emit(QModelIndex(), QModelIndex(), [role])
-            elif iid == self.bat_root:
-                row = index.row()
-                if row in range(0, len(self.bat_list)):
-                    self.bat_list[row] = value
+                elif it.type == glTreeItem.TYPE_BATCH:
+                    self.bat_list[it.type_idx] = value
                     # root check state can change, so update whole model data
                     self.dataChanged.emit(QModelIndex(), QModelIndex(), [role])
-            elif iid == self.bone_root:
-                row = index.row()
-                if row in range(0, len(self.bone_list)):
-                    self.bone_list[row] = value
+                elif it.type == glTreeItem.TYPE_BONE:
+                    self.bone_list[it.type_idx] = value
                     self.dataChanged.emit(QModelIndex(), QModelIndex(), [role])
         return False
 
     def hasChildren(self, parent: QModelIndex) -> bool:
         if not parent.isValid(): return True
-        if parent.internalId()==IID_ROOT and parent.column() == 0 and self.m3:
-            root = parent.row()
-            if root == self.bat_root and self.bats.count:
-                return True
-            if root == self.bone_root and self.bones.count:
-                return True
+        it = self.getNode(parent.internalId())
+        if it and len(it.children) > 0:
+            return True
         return False
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int):

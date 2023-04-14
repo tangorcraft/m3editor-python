@@ -149,6 +149,14 @@ class m3Tag():
             offset = self.info.item_size * item_idx + field.offset
             return unpack_from(fmt, self.data, offset)[0]
 
+    def getFieldValueByName(self, item_idx, field_name: str):
+        field = self.info.getFieldByName(field_name)
+        if field:
+            fmt = m3Type.toFormat(field.type)
+            if fmt:
+                offset = self.info.item_size * item_idx + field.offset
+                return unpack_from(fmt, self.data, offset)[0]
+
     def getFieldUnpacked(self, item_idx, field: m3FieldInfo, unpack_format):
         if not field in self.info.fields:
             raise m3FileError(FIELD_NOT_PART_OF_TAG)
