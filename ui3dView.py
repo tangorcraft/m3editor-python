@@ -142,7 +142,7 @@ class glTreeItem():
         self.parent = parent
         self.children = []
 
-    def noticeChild(self, child):
+    def addChild(self, child):
         if child in self.children:
             return self.children.index(child)
         else:
@@ -196,7 +196,7 @@ class glViewTreeModel(QAbstractItemModel):
             self.bat_list = [Qt.CheckState.Checked] * self.bats.count
             for idx in range(0, self.bats.count):
                 it = self.addNode(glTreeItem.TYPE_BATCH, idx, f'BAT_#{self.bats.idx}[{idx}]', self.bat_root.tree_idx)
-                it.tree_row = self.bat_root.noticeChild(it.tree_idx)
+                it.tree_row = self.bat_root.addChild(it.tree_idx)
             # REGN
             self.regns = self.div.getRefn(0, m3.DIV_.regions)
             if not self.regns: return
@@ -206,14 +206,15 @@ class glViewTreeModel(QAbstractItemModel):
             self.bone_list = [Qt.CheckState.Checked] * self.bones.count
             bone_item_map = [None] * self.bones.count # type: List[glTreeItem]
             for idx in range(0, self.bones.count):
-                it = self.addNode(glTreeItem.TYPE_BONE, idx, f'BONE#{self.bones.idx}[{idx}]', self.bone_root.tree_idx)
+                it = self.addNode(glTreeItem.TYPE_BONE, idx, self.bones.getItemName(idx, False), self.bone_root.tree_idx)
                 bone_item_map[idx] = it
                 parent = self.bones.getFieldValueByName(idx, m3.BONE.parent)
-                if parent and parent in range(0, self.bones.count) and parent < idx: # don't allow parent index >= child index to avoid possible loops
+                # don't allow parent index >= child index to avoid possible loops
+                if parent and parent in range(0, self.bones.count) and parent < idx:
                     it.parent = bone_item_map[parent].tree_idx
-                    it.tree_row = bone_item_map[parent].noticeChild(it.tree_idx)
+                    it.tree_row = bone_item_map[parent].addChild(it.tree_idx)
                 else:
-                    it.tree_row = self.bone_root.noticeChild(it.tree_idx)
+                    it.tree_row = self.bone_root.addChild(it.tree_idx)
             # Set m3
             self.m3 = m3file
         finally:

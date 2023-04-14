@@ -93,7 +93,7 @@ class ShadowTree():
         if not tag:
             text = f'ERROR: Invalid m3Tag ({tag})'
         elif tag.info.type == m3Type.CHAR:
-            text = f'{tag.info.name}#{tag.idx} "{tag.getStr()}"'
+            text = f'{tag.info.name}#{tag.idx} {tag.getItemName()}'
         else:
             text = f'{tag.info.name}#{tag.idx} ({tag.count})'
         self.items.append( ShadowItem(
@@ -113,7 +113,7 @@ class ShadowTree():
             idx,
             SHADOW_IT,
             parent,
-            f'{tag.info.name}[{item_idx}]',
+            f'{tag.info.name}[{item_idx}]{tag.getItemName(item_idx)}',
             tag,
             item_idx
         ) )

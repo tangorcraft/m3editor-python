@@ -94,6 +94,7 @@ class Attr:
     TILL_VER = 'till_version' # inclusive
     BINARY = 'char_binary'
     VERTICES = 'ref_vertices'
+    ITEM_NAME = 'item_name'
 
 class m3Type():
     BINARY = 1
@@ -322,6 +323,8 @@ class m3StructInfo():
         self.hasRefs = False
         self.fields = [] # type: List[m3FieldInfo]
         self.root_fields = [0] # we will add at least one field
+        # this can be a ref to CHAR field that hold the name of a tag item
+        self.item_name_field = None # type: m3FieldInfo
         if tag == TAG_CHAR:
             self.type = m3Type.CHAR
             self.simple = False
@@ -373,6 +376,8 @@ class m3StructInfo():
                 idx = len(self.fields)
                 self.fields.append(field)
                 field.setParent(parent)
+                if Attr.ITEM_NAME in f and not self.item_name_field:
+                    self.item_name_field = field
 
                 if IDX_BITS in f:
                     self.putSubBitsFields(field, idx, f[IDX_BITS])

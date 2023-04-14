@@ -91,6 +91,13 @@ class m3Tag():
                     tag = self.file.tags[ref[REF_FROM_TAG]]
                     pack_into('<I', tag.data, ref[REF_FROM_OFFSET], self.count) # count is first uint32 in Reference structure
 
+    def getItemName(self, item_idx = 0, with_prefix = True):
+        if self.info.type == m3Type.CHAR:
+            return f'"{self.getStr()}"'
+        elif self.info.item_name_field and self.refIsValid(item_idx, self.info.item_name_field):
+            return (f' {self.info.item_name_field.name} -> ' if with_prefix else '') + self.getReff(item_idx, self.info.item_name_field).getItemName()
+        return ''
+
     def getFieldInfoStr(self, field: m3FieldInfo):
         if not field in self.info.fields:
             raise m3FileError(FIELD_NOT_PART_OF_TAG)

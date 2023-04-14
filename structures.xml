@@ -471,7 +471,7 @@
             <version number="2" size="108"/>
         </versions>
         <fields>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="unknown76ff2940" type="int32" expected_value="-1"/>
             <field name="bone" type="int16" default_value="-1"/>
             <field name="unknown294cc515" type="uint16" expected_value="0"/>
@@ -662,7 +662,7 @@
         </versions>
         <fields>
             <field name="d1" type="int32" default_value="-1"/>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="flags" type="uint32" default_value="0" >
                 <bit mask="0x1" name="inhertTranslation"/>
                 <bit mask="0x2" name="inheritScale"/>
@@ -703,7 +703,7 @@
             <version number="4" size="204"/>
         </versions>
         <fields>
-            <field name="name" type="Reference"  ref_to="CHAR"/>
+            <field name="name" type="Reference"  ref_to="CHAR" item_name="1"/>
             <field name="runsConcurrent" type="uint16" default_value="0"/>
             <field name="priority" type="uint16" default_value="0"/>
             <field name="stsIndex" type="uint16"/>
@@ -736,7 +736,7 @@
         <fields>
             <field name="unknown0" type="int32" default_value="-1"/>
             <field name="unknown1" type="int32" default_value="-1"/>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="animStartInMS" type="uint32"/>
             <field name="animEndInMS" type="uint32"/>
             <field name="movementSpeed" type="float"/>
@@ -765,7 +765,7 @@
             <version number="0" size="24"/>
         </versions>
         <fields>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="stcIndices" type="Reference" ref_to="U32_"/>
         </fields>
     </structure>
@@ -876,7 +876,7 @@
         </versions>
         <fields>
             <field name="unknown" type="int32" expected_value="-1"/>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="bone" type="uint32"/>
         </fields>
     </structure>
@@ -1005,7 +1005,7 @@
         </versions>
         <fields>
             <field name="unknown2daf9c00" type="uint32" expected_value="0"/>
-            <field name="imagePath" type="Reference" ref_to="CHAR"/>
+            <field name="imagePath" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="color" type="ColorAnimationReferenceV0"/>
             <field name="flags" type="uint32" default_value="0xec">
                 <bit mask="0x4" name="textureWrapX"/>
@@ -1095,7 +1095,7 @@
             <version number="20" size="352"/>
         </versions>
         <fields>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="additionalFlags" type="uint32" default_value="0">
                 <bit mask="0x1" name="useDepthBlendFalloff"/>
                 <bit mask="0x4" name="makesUseOfVertexColor"/>
@@ -1234,7 +1234,7 @@
             <version number="4" size="68"/>
         </versions>
         <fields>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="unknown0" type="uint32" default_value="0"/>
             <field name="strengthFactor" type="FloatAnimationReferenceV0"/>
             <field name="normalLayer" type="Reference" ref_to="LAYR"/>
@@ -1261,7 +1261,7 @@
             <version number="2" size="28"/>
         </versions>
         <fields>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="priority" type="uint32" default_value="0"/> <!-- See: SM_MarSaraBar_00.m3 -->
             <field name="sections" type="Reference" ref_to="CMS_"/>
         </fields>
@@ -1274,7 +1274,7 @@
             <version number="1" size="28"/>
         </versions>
         <fields>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="terrainLayer" type="Reference" ref_to="LAYR"/>
             <field name="unknown633fd422" size="4" expected_value="0x00000000" since_version="1"/>
         </fields>
@@ -1286,7 +1286,7 @@
             <version number="0" size="84"/>
         </versions>
         <fields>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="unknown0" type="uint32" default_value="0"/> <!--Mar Sara bar -->
             <field name="unknown1" type="uint32" default_value="0"/> <!--Mar Sara bar -->
             <field name="volumeDensity" type="FloatAnimationReferenceV0"/>
@@ -1305,7 +1305,7 @@
             <version number="0" size="268"/>
         </versions>
         <fields>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="unknown50762f82" type="uint32" default_value="0"/>
             <field name="flags" type="uint32" default_value="0">
                 <bit mask="0x1" name="drawAfterTransparency"/>
@@ -1332,7 +1332,7 @@
             <version number="1" size="28"/>
         </versions>
         <fields>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="creepLayer" type="Reference" ref_to="LAYR"/>
             <field name="unknownda1b4eb3" size="4" expected_value="0x00000000" since_version="1"/>
         </fields>
@@ -1344,7 +1344,7 @@
             <version number="0" size="12"/>
         </versions>
         <fields>
-            <field name="path" type="Reference" ref_to="CHAR"/>
+            <field name="path" type="Reference" ref_to="CHAR" item_name="1"/>
         </fields>
     </structure>
     
@@ -1354,7 +1354,7 @@
             <version number="0" size="48"/>
         </versions>
         <fields>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="diffuseLayer" type="Reference" ref_to="LAYR"/>
             <field name="normalLayer" type="Reference" ref_to="LAYR"/>
             <field name="specularLayer" type="Reference" ref_to="LAYR"/>
@@ -1395,7 +1395,7 @@
             <version number="3" size="152"/>
         </versions>
         <fields>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="colorLayer" type="Reference" ref_to="LAYR"/>
             <field name="unknownLayer2" type="Reference" ref_to="LAYR"/>
             <field name="starburst" type="Reference" ref_to="LFSB"/>
@@ -1421,7 +1421,7 @@
             <version number="3" size="160"/> <!-- probably Storm exclusive? -->
         </versions>
         <fields>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="unknown8f5ea924" size="4" default_value="0x00000000"/>
 
             <field name="reflectionStrength" type="FloatAnimationReferenceV0"/> <!-- default_value="1.0" -->
@@ -2318,7 +2318,7 @@
         </versions>
         <fields>
             <field name="bone" type="uint32"/>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="fieldOfView" type="FloatAnimationReferenceV0" since_version="3"/>
             <field name="useVertFOV" type="uint32" default_value="1" since_version="3"/>
             <field name="depthOfFieldType" type="uint32" default_value="3" since_version="5"/>
@@ -2365,7 +2365,7 @@
             <version number="3" size="160"/>
         </versions>
         <fields>
-            <field name="name" type="Reference" ref_to="CHAR"/>
+            <field name="name" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="unknown2" type="Reference" ref_to="U32_"/>
             <field name="unknown3" type="Reference" ref_to="U32_" since_version="2"/>
             <field name="unknown4" type="Reference" ref_to="CHAR" char_binary="1"/> <!-- CHAR tag that is referenced by this field contains binary data -->
@@ -2391,7 +2391,7 @@
             <version number="30" size="868"/>
         </versions>
         <fields>
-            <field name="modelName" type="Reference" ref_to="CHAR"/>
+            <field name="modelName" type="Reference" ref_to="CHAR" item_name="1"/>
             <field name="flags" type="uint32" default_value="0x80d53">
                 <bit mask="0x100000" name="hasMesh"/>
             </field>
