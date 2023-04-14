@@ -58,6 +58,7 @@ class SimpleFieldEdit(QtWidgets.QDialog):
             self.floatDisplay = field.type in m3Type.REAL
             self.val_size = field.size
             self.init_value = tag.getFieldValue(item, field)
+            self.value = self.init_value
             self.val_format = m3Type.toFormat(field.type)
             self.hex_format = m3Type.toHexFormat(field.type)
             self.sign_format = m3Type.toSignFormat(field.type)

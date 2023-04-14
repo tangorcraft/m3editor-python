@@ -394,6 +394,7 @@ class fieldsTableModel(QAbstractItemModel):
         if not (index.isValid() and self.tag):
             return self.dataDefault(role)
         col = index.column()
+        f = None
         if self.binaryView:
             offset = (self.item_offset + index.row()) * BINARY_DATA_ITEM_BYTES_COUNT
             if self.isBaseTag:
