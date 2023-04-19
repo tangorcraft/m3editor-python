@@ -262,6 +262,8 @@ class m3FieldInfo():
         self.bitMask = bitMask
         self.notSelfField = True
         self.hint = ''
+        self.bits = {} # type: Dict[str, int]
+        ''' bits[name] = mask '''
 
     def noticeChild(self, child) -> int:
         idx = len(self.tree_children)
@@ -427,6 +429,7 @@ class m3StructInfo():
                 parent.size,
                 b[Attr.MASK]
             )
+            parent.bits[field.display_name] = field.bitMask
             self.fields.append(field)
             field.setParent(parent_idx)
 

@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from struct import pack
+
 def ceildiv(a: int, b: int) -> int:
     '''Ceil division, same as ceil(a/b)'''
     return -(a//-b)

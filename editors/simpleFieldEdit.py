@@ -22,7 +22,7 @@ from m3struct import m3FieldInfo, m3Type
 from struct import pack, pack_into, unpack, error as struct_error
 from common import fixed8_to_float, fixed16_to_float, float_to_fixed8, float_to_fixed16
 
-RESULT_CANCEL = QtWidgets.QDialog.Rejected
+RESULT_CANCEL = QtWidgets.QDialog.DialogCode.Rejected
 RESULT_OK = RESULT_CANCEL + 1
 RESULT_CONTINUE = RESULT_CANCEL + 2
 
@@ -73,9 +73,10 @@ class SimpleFieldEdit(QtWidgets.QDialog):
             self.hex_format = m3Type.toHexFormat(field.type)
             self.sign_format = m3Type.toSignFormat(field.type)
             ret = self.showEditor()
-            if ret == RESULT_OK and self.value != self.init_value:
-                offset = tag.info.item_size * item + field.offset
-                pack_into(self.val_format, tag.data, offset, self.value)
+            if ret == RESULT_OK:
+                if self.value != self.init_value:
+                    offset = tag.info.item_size * item + field.offset
+                    pack_into(self.val_format, tag.data, offset, self.value)
                 return True
             if ret == RESULT_CANCEL:
                 return True # editing is finished even if it got canceled

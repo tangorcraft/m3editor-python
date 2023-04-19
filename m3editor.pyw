@@ -23,6 +23,7 @@ from m3file import m3File
 from m3struct import m3StructFile, m3FieldInfo
 from uiTreeView import TagTreeModel, fieldsTableModel, ShadowItem
 from editors.simpleFieldEdit import SimpleFieldEdit
+from editors.flagsFieldEdit import FlagsFieldEdit
 import sys, os, requests
 
 class mainWin(QtWidgets.QMainWindow):
@@ -48,6 +49,7 @@ class mainWin(QtWidgets.QMainWindow):
         self.resetItemNaviText('##')
 
         self.simpleEditor = SimpleFieldEdit(self)
+        self.flagEditor = FlagsFieldEdit(self)
 
         self.fieldsModel = fieldsTableModel()
         self.fieldsModel.modelReset.connect(self.fieldsModelReset)
@@ -150,6 +152,15 @@ class mainWin(QtWidgets.QMainWindow):
         self.ui.btnItemBack.setEnabled(self.fieldsModel.isBaseTag)
         self.ui.btnItemForw.setEnabled(self.fieldsModel.isBaseTag)
 
+    def editSimpleValue(self, tag, item, f: m3FieldInfo):
+        skip_to_flags = True if f.bits else False
+        while True:
+            if skip_to_flags:
+                skip_to_flags = False
+            else:
+                if self.simpleEditor.editValue(tag, item, f): break
+            if self.flagEditor.editValue(tag, item, f): break
+
     ## EVENTS ##
 
     def fieldDoubleClick(self, index: QModelIndex):
@@ -160,15 +171,15 @@ class mainWin(QtWidgets.QMainWindow):
                 pass
             elif tag.info.simple:
                 item = self.fieldsModel.item_offset + index.row()
-                self.simpleEditor.editValue(tag, item, f)
+                self.editSimpleValue(tag, item, f)
             elif tag.isStr():
                 val = tag.getStr()
                 val, ok = QtWidgets.QInputDialog.getText(self, f'Edit CHAR#{tag.idx}', 'Input new CHAR value', text=val)
                 if ok: tag.setStr(val)
             else:
                 if f.simple():
-                    self.simpleEditor.editValue(self.fieldsModel.tag, self.fieldsModel.tag_item, f)
-            pass
+                    self.editSimpleValue(self.fieldsModel.tag, self.fieldsModel.tag_item, f)
+        self.fieldsModel.dataChanged.emit(QModelIndex(), QModelIndex())
 
     def tagTreeClick(self, item: QModelIndex, old_item: QModelIndex):
         if item.isValid():

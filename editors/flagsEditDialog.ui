@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Dialog</class>
+ <widget class="QDialog" name="Dialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>459</width>
+    <height>495</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Flags value edit</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="0">
+      <widget class="QCheckBox" name="cbBit_1">
+       <property name="text">
+        <string>0x01</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QCheckBox" name="cbBit_17">
+       <property name="text">
+        <string>0x010000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QCheckBox" name="cbBit_2">
+       <property name="text">
+        <string>0x02</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QCheckBox" name="cbBit_18">
+       <property name="text">
+        <string>0x020000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QCheckBox" name="cbBit_3">
+       <property name="text">
+        <string>0x04</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QCheckBox" name="cbBit_19">
+       <property name="text">
+        <string>0x040000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QCheckBox" name="cbBit_4">
+       <property name="text">
+        <string>0x08</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QCheckBox" name="cbBit_20">
+       <property name="text">
+        <string>0x080000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QCheckBox" name="cbBit_5">
+       <property name="text">
+        <string>0x10</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QCheckBox" name="cbBit_21">
+       <property name="text">
+        <string>0x100000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QCheckBox" name="cbBit_6">
+       <property name="text">
+        <string>0x20</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QCheckBox" name="cbBit_22">
+       <property name="text">
+        <string>0x200000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QCheckBox" name="cbBit_7">
+       <property name="text">
+        <string>0x40</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QCheckBox" name="cbBit_23">
+       <property name="text">
+        <string>0x400000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="0">
+      <widget class="QCheckBox" name="cbBit_8">
+       <property name="text">
+        <string>0x80</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QCheckBox" name="cbBit_24">
+       <property name="text">
+        <string>0x800000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="0">
+      <widget class="QCheckBox" name="cbBit_9">
+       <property name="text">
+        <string>0x0100</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="1">
+      <widget class="QCheckBox" name="cbBit_25">
+       <property name="text">
+        <string>0x01000000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="0">
+      <widget class="QCheckBox" name="cbBit_10">
+       <property name="text">
+        <string>0x0200</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="1">
+      <widget class="QCheckBox" name="cbBit_26">
+       <property name="text">
+        <string>0x02000000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="0">
+      <widget class="QCheckBox" name="cbBit_11">
+       <property name="text">
+        <string>0x0400</string>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="1">
+      <widget class="QCheckBox" name="cbBit_27">
+       <property name="text">
+        <string>0x04000000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="11" column="0">
+      <widget class="QCheckBox" name="cbBit_12">
+       <property name="text">
+        <string>0x0800</string>
+       </property>
+      </widget>
+     </item>
+     <item row="11" column="1">
+      <widget class="QCheckBox" name="cbBit_28">
+       <property name="text">
+        <string>0x08000000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="12" column="0">
+      <widget class="QCheckBox" name="cbBit_13">
+       <property name="text">
+        <string>0x1000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="12" column="1">
+      <widget class="QCheckBox" name="cbBit_29">
+       <property name="text">
+        <string>0x10000000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="13" column="0">
+      <widget class="QCheckBox" name="cbBit_14">
+       <property name="text">
+        <string>0x2000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="13" column="1">
+      <widget class="QCheckBox" name="cbBit_30">
+       <property name="text">
+        <string>0x20000000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="14" column="0">
+      <widget class="QCheckBox" name="cbBit_15">
+       <property name="text">
+        <string>0x4000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="14" column="1">
+      <widget class="QCheckBox" name="cbBit_31">
+       <property name="text">
+        <string>0x40000000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="15" column="0">
+      <widget class="QCheckBox" name="cbBit_16">
+       <property name="text">
+        <string>0x8000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="15" column="1">
+      <widget class="QCheckBox" name="cbBit_32">
+       <property name="text">
+        <string>0x80000000</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="lblInitVal">
+     <property name="text">
+      <string>Initial value:</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="lblCurVal">
+     <property name="text">
+      <string>Current value:</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QPushButton" name="btnOk">
+       <property name="text">
+        <string>OK</string>
+       </property>
+       <property name="default">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnCancel">
+       <property name="text">
+        <string>Cancel</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnReset">
+       <property name="text">
+        <string>Reset</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnAsInteger">
+       <property name="text">
+        <string>As Field Type</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <tabstops>
+  <tabstop>cbBit_1</tabstop>
+  <tabstop>cbBit_2</tabstop>
+  <tabstop>cbBit_3</tabstop>
+  <tabstop>cbBit_4</tabstop>
+  <tabstop>cbBit_5</tabstop>
+  <tabstop>cbBit_6</tabstop>
+  <tabstop>cbBit_7</tabstop>
+  <tabstop>cbBit_8</tabstop>
+  <tabstop>cbBit_9</tabstop>
+  <tabstop>cbBit_10</tabstop>
+  <tabstop>cbBit_11</tabstop>
+  <tabstop>cbBit_12</tabstop>
+  <tabstop>cbBit_13</tabstop>
+  <tabstop>cbBit_14</tabstop>
+  <tabstop>cbBit_15</tabstop>
+  <tabstop>cbBit_16</tabstop>
+  <tabstop>cbBit_17</tabstop>
+  <tabstop>cbBit_18</tabstop>
+  <tabstop>cbBit_19</tabstop>
+  <tabstop>cbBit_20</tabstop>
+  <tabstop>cbBit_21</tabstop>
+  <tabstop>cbBit_22</tabstop>
+  <tabstop>cbBit_23</tabstop>
+  <tabstop>cbBit_24</tabstop>
+  <tabstop>cbBit_25</tabstop>
+  <tabstop>cbBit_26</tabstop>
+  <tabstop>cbBit_27</tabstop>
+  <tabstop>cbBit_28</tabstop>
+  <tabstop>cbBit_29</tabstop>
+  <tabstop>cbBit_30</tabstop>
+  <tabstop>cbBit_31</tabstop>
+  <tabstop>cbBit_32</tabstop>
+  <tabstop>btnOk</tabstop>
+  <tabstop>btnCancel</tabstop>
+  <tabstop>btnReset</tabstop>
+  <tabstop>btnAsInteger</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>
