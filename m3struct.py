@@ -664,6 +664,7 @@ if __name__ == '__main__':
         struct = {}
         parseSubField(struct, '', '', s)
         out_file.write(f'class {s}:\n')
+        out_file.write(f"    self__ = '{s}'\n")
         for f in struct:
             out_file.write(f"    {f} = '{struct[f]['v']}'\n")
             out_file.write(f"    ''' type {struct[f]['t']}")

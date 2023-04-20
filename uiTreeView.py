@@ -17,6 +17,7 @@ from typing import List, Callable
 from PyQt5.QtCore import *
 from m3file import m3File, m3Tag
 from m3struct import m3StructFile, m3Type, m3FieldInfo, BINARY_DATA_ITEM_BYTES_COUNT
+from editors.fieldHandlers import fieldHandlersCollection
 from common import ceildiv, clampi
 
 SHADOW_TAG, SHADOW_IT, SHADOW_GRP, SHADOW_DUP = range(4)
@@ -241,8 +242,9 @@ class fieldsTableModel(QAbstractItemModel):
     BinaryViewOffsetRole = Qt.ItemDataRole.UserRole + 2 # type: 'Qt.ItemDataRole'
     FullFieldHintRole = Qt.ItemDataRole.UserRole + 3 # type: 'Qt.ItemDataRole'
 
-    def __init__(self, tag: m3Tag = None) -> None:
+    def __init__(self, handlers: fieldHandlersCollection, tag: m3Tag = None) -> None:
         self.tag = tag
+        self.handlers = handlers
         self.simpleFieldsDisplayCount = DEFAULT_SIMPLE_FIELDS_DISPLAY_COUNT
         self.binaryView = False
         self.isBaseTag = False # when selecting tag itself in tags tree, not one of its items
@@ -437,12 +439,16 @@ class fieldsTableModel(QAbstractItemModel):
                 elif col == 2:
                     return self.tag.getFieldInfoStr(f)
                 elif col == 3:
+                    if self.handlers.hasHandler(f):
+                        return self.handlers.fieldData(role, self.tag, self.tag_item, f)
                     return self.tag.getFieldAsStr(self.tag_item, f)
             elif role == Qt.ItemDataRole.CheckStateRole and f.type == m3Type.BIT and col == 3:
                 return Qt.CheckState.Checked if self.tag.checkBitState(self.tag_item, f) else Qt.CheckState.Unchecked
             elif role == Qt.ItemDataRole.ToolTipRole:
                 tip = f.getHint()
                 if tip: return tip
+            elif col == 3 and role < Qt.ItemDataRole.UserRole:
+                return self.handlers.fieldData(role, self.tag, self.tag_item, f)
         if role == fieldsTableModel.FieldRole and f:
             return f
         if role == fieldsTableModel.FullFieldHintRole and f:

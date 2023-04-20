@@ -24,6 +24,7 @@ from m3struct import m3StructFile, m3FieldInfo
 from uiTreeView import TagTreeModel, fieldsTableModel, ShadowItem
 from editors.simpleFieldEdit import SimpleFieldEdit
 from editors.flagsFieldEdit import FlagsFieldEdit
+from editors.fieldHandlers import fieldHandlersCollection
 import sys, os, requests
 
 class mainWin(QtWidgets.QMainWindow):
@@ -50,8 +51,9 @@ class mainWin(QtWidgets.QMainWindow):
 
         self.simpleEditor = SimpleFieldEdit(self)
         self.flagEditor = FlagsFieldEdit(self)
+        self.handlers = fieldHandlersCollection(self)
 
-        self.fieldsModel = fieldsTableModel()
+        self.fieldsModel = fieldsTableModel(self.handlers)
         self.fieldsModel.modelReset.connect(self.fieldsModelReset)
         self.fieldsModel.dataChanged.connect(lambda a,b: self.fieldsDataChanged())
         self.fieldsFilterModel = QSortFilterProxyModel()
@@ -179,6 +181,8 @@ class mainWin(QtWidgets.QMainWindow):
             else:
                 if f.simple():
                     self.editSimpleValue(self.fieldsModel.tag, self.fieldsModel.tag_item, f)
+                else:
+                    self.handlers.editField(self.fieldsModel.tag, self.fieldsModel.tag_item, f)
         self.fieldsModel.dataChanged.emit(QModelIndex(), QModelIndex())
 
     def tagTreeClick(self, item: QModelIndex, old_item: QModelIndex):
