@@ -18,13 +18,13 @@ from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import QMessageBox as mb, QFileDialog as fd
 from Ui_editorWindow import Ui_m3ew
-from configparser import ConfigParser
 from m3file import m3File
 from m3struct import m3StructFile, m3FieldInfo
 from uiTreeView import TagTreeModel, fieldsTableModel, ShadowItem
 from editors.simpleFieldEdit import SimpleFieldEdit
 from editors.flagsFieldEdit import FlagsFieldEdit
 from editors.fieldHandlers import fieldHandlersCollection
+from common import options
 import sys, os, requests
 
 class mainWin(QtWidgets.QMainWindow):
@@ -32,8 +32,6 @@ class mainWin(QtWidgets.QMainWindow):
     def __init__(self):
         super(mainWin, self).__init__()
 
-        self.cfg = ConfigParser()
-        self.cfg.read('options.ini')
         self.struct = m3StructFile()
         self.struct.loadFromFile('structures.xml')
         self.lastFile = ''
@@ -106,15 +104,8 @@ class mainWin(QtWidgets.QMainWindow):
         self.ui.actionSave.triggered.connect(self.saveM3)
         self.ui.actionSave_as.triggered.connect(self.saveM3as)
 
-    def setIniOption(self, sect, opt, val, saveINI = False):
-        if not sect in self.cfg:
-            self.cfg[sect] = {}
-        self.cfg[sect][opt] = str(val)
-        if saveINI: self.saveIni()
-
-    def saveIni(self):
-        with open('options.ini','w') as cfgFile:
-            self.cfg.write(cfgFile)
+        options.connectWithActionCheckState(self.ui.actionConfirm_Flag_Bits_edit, options.OPT_CONFIRM_BIT_EDIT, True)
+        options.connectWithActionCheckState(self.ui.actionFields_Auto_Expand_All, options.OPT_FIELDS_AUTO_EXPAND, True)
 
     def resetItemNaviText(self, new_text = None):
         if new_text:
@@ -236,7 +227,7 @@ class mainWin(QtWidgets.QMainWindow):
         self.saveM3()
 
     def closeEvent(self, ev: QtGui.QCloseEvent) -> None:
-        self.saveIni()
+        options.saveIni()
         ev.accept()
 
 if __name__ == '__main__':

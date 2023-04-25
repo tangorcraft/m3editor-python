@@ -427,7 +427,14 @@
     <addaction name="menuSimple_and_Binary_Display_Count"/>
     <addaction name="actionFields_Auto_Expand_All"/>
    </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <addaction name="actionConfirm_Flag_Bits_edit"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
    <addaction name="menuView"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -509,6 +516,17 @@
   <action name="actionExit">
    <property name="text">
     <string>Exit</string>
+   </property>
+  </action>
+  <action name="actionConfirm_Flag_Bits_edit">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Confirm Flag Bits edit</string>
    </property>
   </action>
  </widget>

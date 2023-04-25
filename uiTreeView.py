@@ -442,8 +442,6 @@ class fieldsTableModel(QAbstractItemModel):
                     if self.handlers.hasHandler(f):
                         return self.handlers.fieldData(role, self.tag, self.tag_item, f)
                     return self.tag.getFieldAsStr(self.tag_item, f)
-            elif role == Qt.ItemDataRole.CheckStateRole and f.type == m3Type.BIT and col == 3:
-                return Qt.CheckState.Checked if self.tag.checkBitState(self.tag_item, f) else Qt.CheckState.Unchecked
             elif role == Qt.ItemDataRole.ToolTipRole:
                 tip = f.getHint()
                 if tip: return tip

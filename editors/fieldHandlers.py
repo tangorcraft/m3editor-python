@@ -39,7 +39,7 @@ class fieldHandlersCollection():
             return self.handlers[field.type_name].editField(tag, item, field)
 
     def fieldData(self, role: Qt.ItemDataRole, tag: m3Tag, item: int, field: m3FieldInfo):
-        if field.type_name in self.handlers and role < Qt.ItemDataRole.UserRole:
+        if field.type_name in self.handlers:
             return self.handlers[field.type_name].fieldData(role, tag, item, field)
         else:
             return QVariant()

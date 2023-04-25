@@ -114,6 +114,8 @@ class m3Type():
     BIT = 15
     VERTEX = 16
 
+    FLAGS_BIT_NAME = 'Flags Bit'
+
     NAME_TO_TYPE = {
         'uint8': UINT8,
         'fixed8': FIXED8,
@@ -421,7 +423,7 @@ class m3StructInfo():
         for b in bits:
             field = m3FieldInfo(
                 self,
-                'Flags Bit',
+                m3Type.FLAGS_BIT_NAME,
                 parent.name + SUB_STRUCT_DELIM,
                 b[Attr.NAME],
                 parent.offset,
